@@ -175,7 +175,11 @@ export const useAdminTicketActions = (profile: Profile | null, fetchTickets: () 
 
       toast({
         title: "Ticket Resolved",
+<<<<<<< HEAD
         description: `Ticket ${ticketNumber} has been marked as resolved. User will be notified and has 10 minutes to close it manually.`
+=======
+        description: `Ticket ${ticketNumber} has been marked as resolved. User will be notified and can close it manually before auto-close.`
+>>>>>>> main
       });
 
       fetchTickets();

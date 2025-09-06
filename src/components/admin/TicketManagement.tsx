@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import TicketPagination from './ticket-management/TicketPagination';
 import TicketReferralModal from './TicketReferralModal';
 import TicketListHeader from './ticket-management/TicketListHeader';
 import TicketList from './ticket-management/TicketList';
@@ -8,6 +9,13 @@ import type { Ticket } from '@/types/admin';
 interface TicketManagementProps {
   tickets: Ticket[];
   selectedDepartment: string;
+  totalCount: number;
+  hasMore: boolean;
+  onLoadMore: () => void;
+  onLoadAll: () => void;
+  loading: boolean;
+  showAllTickets: boolean;
+  onToggleShowAll: (showAll: boolean) => void;
   onAssignTicket: (ticketId: string) => void;
   onResolveTicket: (ticketId: string, ticketNumber: string, resolutionNote: string) => Promise<void>;
   onOpenChat: (ticket: Ticket) => void;
@@ -29,6 +37,13 @@ interface TicketManagementProps {
 const TicketManagement = ({
   tickets,
   selectedDepartment,
+  totalCount,
+  hasMore,
+  onLoadMore,
+  onLoadAll,
+  loading,
+  showAllTickets,
+  onToggleShowAll,
   onAssignTicket,
   onResolveTicket,
   onOpenChat,
@@ -56,6 +71,7 @@ const TicketManagement = ({
       <TicketListHeader 
         selectedDepartment={selectedDepartment}
         ticketCount={tickets.length}
+        totalCount={totalCount}
       />
 
       <TicketList
@@ -79,6 +95,16 @@ const TicketManagement = ({
         getBookmarkInfo={getBookmarkInfo}
         onBookmark={onBookmark}
         onRemoveBookmark={onRemoveBookmark}
+      />
+
+      <TicketPagination
+        currentCount={tickets.length}
+        totalCount={totalCount}
+        hasMore={hasMore}
+        loading={loading}
+        onLoadMore={showAllTickets ? onLoadAll : onLoadMore}
+        showAllTickets={showAllTickets}
+        onToggleShowAll={onToggleShowAll}
       />
 
       {referralTicket && (

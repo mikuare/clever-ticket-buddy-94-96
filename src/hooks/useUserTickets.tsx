@@ -3,6 +3,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+<<<<<<< HEAD
+=======
+import { useClassificationCooldownSettings } from '@/hooks/useAutoCloseSettings';
+>>>>>>> main
 import type { Json } from '@/integrations/supabase/types';
 
 export interface Ticket {
@@ -28,6 +32,10 @@ export interface Ticket {
 export const useUserTickets = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
+<<<<<<< HEAD
+=======
+  const { cooldownMinutes } = useClassificationCooldownSettings();
+>>>>>>> main
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [classificationCooldowns, setClassificationCooldowns] = useState<Map<string, boolean>>(new Map());
@@ -68,12 +76,20 @@ export const useUserTickets = () => {
       if (error) throw error;
 
       const cooldownMap = new Map<string, boolean>();
+<<<<<<< HEAD
       const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
+=======
+      const cooldownTime = new Date(Date.now() - cooldownMinutes * 60 * 1000);
+>>>>>>> main
 
       if (data) {
         data.forEach(cooldown => {
           const lastTime = new Date(cooldown.last_ticket_time);
+<<<<<<< HEAD
           const isOnCooldown = lastTime > oneMinuteAgo;
+=======
+          const isOnCooldown = lastTime > cooldownTime;
+>>>>>>> main
           cooldownMap.set(cooldown.classification, isOnCooldown);
         });
       }
@@ -95,7 +111,18 @@ export const useUserTickets = () => {
       fetchTickets();
       checkClassificationCooldowns();
     }
+<<<<<<< HEAD
   }, [profile?.id]);
+=======
+  }, [profile?.id, cooldownMinutes]);
+
+  // Re-check cooldowns when cooldown minutes change
+  useEffect(() => {
+    if (profile?.id && cooldownMinutes) {
+      checkClassificationCooldowns();
+    }
+  }, [cooldownMinutes]);
+>>>>>>> main
 
   const handleTicketCreated = (classification: string) => {
     // Update the cooldown for this specific classification

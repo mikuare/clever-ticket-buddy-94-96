@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminTicketFiltersSection from '@/components/admin/AdminTicketFiltersSection';
-import TicketManagement from '@/components/admin/TicketManagement';
+import TicketManagement from './TicketManagement';
 import ConfigurationManagement from '@/components/admin/ConfigurationManagement';
 import MaintenanceModeManager from '@/components/admin/MaintenanceModeManager';
 import StatsCards from '@/components/admin/StatsCards';
@@ -22,6 +22,9 @@ interface AdminDashboardTabsProps {
   departments: Department[];
   selectedDepartment: string;
   loading: boolean;
+  hasMore: boolean;
+  totalCount: number;
+  onLoadMore: () => void;
   departmentNotifications: any[];
   userNotifications: any[];
   ticketMessageCounts: Map<string, number>;
@@ -36,6 +39,9 @@ interface AdminDashboardTabsProps {
   onCloseTicketChat: () => void;
   onTicketsUpdate: () => void;
   onEscalateTicket: (ticket: Ticket) => void;
+  onLoadAllTickets: () => void;
+  showAllTickets: boolean;
+  onToggleShowAll: (showAll: boolean) => void;
   clearNotificationForTicket: (ticketId: string) => void;
   // Bookmark functionality
   isBookmarked?: (ticketId: string) => boolean;
@@ -50,6 +56,9 @@ const AdminDashboardTabs = ({
   departments,
   selectedDepartment,
   loading,
+  hasMore,
+  totalCount,
+  onLoadMore,
   departmentNotifications,
   userNotifications,
   ticketMessageCounts,
@@ -64,6 +73,9 @@ const AdminDashboardTabs = ({
   onCloseTicketChat,
   onTicketsUpdate,
   onEscalateTicket,
+  onLoadAllTickets,
+  showAllTickets,
+  onToggleShowAll,
   clearNotificationForTicket,
   isBookmarked,
   getBookmarkInfo,
@@ -118,28 +130,35 @@ const AdminDashboardTabs = ({
         />
         
         {/* Ticket Management */}
-        <TicketManagement
-          tickets={departmentFilteredTickets}
-          selectedDepartment={selectedDepartment}
-          onAssignTicket={(ticketId) => {
-            const ticket = tickets.find(t => t.id === ticketId);
-            if (ticket) onAssignTicket(ticketId, ticket.ticket_number);
-          }}
-          onResolveTicket={onResolveTicket}
-          onOpenChat={onOpenTicketChat}
-          ticketMessageCounts={ticketMessageCounts}
-          currentAdminId={profile?.id || ''}
-          onTicketsUpdate={onTicketsUpdate}
-          resolvingTickets={resolvingTickets}
-          canReferTicket={canReferTicket}
-          canEscalateTicket={canEscalateTicket}
-          onEscalateTicket={onEscalateTicket}
-          clearNotificationForTicket={clearNotificationForTicket}
-          isBookmarked={isBookmarked}
-          getBookmarkInfo={getBookmarkInfo}
-          onBookmark={onBookmark}
-          onRemoveBookmark={onRemoveBookmark}
-        />
+              <TicketManagement
+                tickets={departmentFilteredTickets}
+                selectedDepartment={selectedDepartment}
+                totalCount={totalCount}
+                hasMore={hasMore}
+                onLoadMore={onLoadMore}
+                onLoadAll={onLoadAllTickets}
+                showAllTickets={showAllTickets}
+                onToggleShowAll={onToggleShowAll}
+                loading={loading}
+                onAssignTicket={(ticketId) => {
+                  const ticket = tickets.find(t => t.id === ticketId);
+                  if (ticket) onAssignTicket(ticketId, ticket.ticket_number);
+                }}
+                onResolveTicket={onResolveTicket}
+                onOpenChat={onOpenTicketChat}
+                ticketMessageCounts={ticketMessageCounts}
+                currentAdminId={profile?.id || ''}
+                onTicketsUpdate={onTicketsUpdate}
+                resolvingTickets={resolvingTickets}
+                canReferTicket={canReferTicket}
+                canEscalateTicket={canEscalateTicket}
+                onEscalateTicket={onEscalateTicket}
+                clearNotificationForTicket={clearNotificationForTicket}
+                isBookmarked={isBookmarked}
+                getBookmarkInfo={getBookmarkInfo}
+                onBookmark={onBookmark}
+                onRemoveBookmark={onRemoveBookmark}
+              />
       </TabsContent>
       
       <TabsContent value="configuration" className="mt-4">

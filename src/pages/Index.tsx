@@ -16,9 +16,9 @@ const IndexPage = () => {
   const { maintenanceStatus, loading: maintenanceLoading } = useMaintenanceMode();
   const navigate = useNavigate();
 
-  // Auto-logout for inactive users (15 minutes idle, 2 minutes warning)
+  // Auto-logout for inactive users (1 hour idle, 2 minutes warning)
   useIdleTimer({
-    idleTime: 15 * 60 * 1000, // 15 minutes
+    idleTime: 60 * 60 * 1000, // 1 hour
     warningTime: 2 * 60 * 1000  // 2 minutes warning before logout
   });
 

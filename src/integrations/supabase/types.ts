@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+<<<<<<< HEAD
+=======
+      admin_message_reads: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          last_read_at: string
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+>>>>>>> main
       admin_performance_metrics: {
         Row: {
           admin_id: string
@@ -615,6 +645,39 @@ export type Database = {
         }
         Relationships: []
       }
+<<<<<<< HEAD
+=======
+      system_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+>>>>>>> main
       ticket_activities: {
         Row: {
           activity_type: string
@@ -1078,6 +1141,45 @@ export type Database = {
           total_tickets_in_progress: number
         }[]
       }
+<<<<<<< HEAD
+=======
+      get_consolidated_ticket_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          closed_count: number
+          in_progress_count: number
+          open_count: number
+          reopened_count: number
+          resolved_count: number
+          total_count: number
+        }[]
+      }
+      get_consolidated_ticket_stats_by_department: {
+        Args: { p_department_code?: string }
+        Returns: {
+          closed_count: number
+          in_progress_count: number
+          open_count: number
+          reopened_count: number
+          resolved_count: number
+          total_count: number
+        }[]
+      }
+      get_department_ticket_stats: {
+        Args: { p_admin_id?: string }
+        Returns: {
+          closed_tickets: number
+          department_code: string
+          department_name: string
+          in_progress_tickets: number
+          open_tickets: number
+          reopened_tickets: number
+          resolved_tickets: number
+          total_tickets: number
+          unread_message_count: number
+        }[]
+      }
+>>>>>>> main
       get_escalated_tickets: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1098,6 +1200,99 @@ export type Database = {
           user_full_name: string
         }[]
       }
+<<<<<<< HEAD
+=======
+      get_tickets_by_department_paginated: {
+        Args: {
+          p_admin_id?: string
+          p_department_code?: string
+          p_page_limit?: number
+          p_page_offset?: number
+        }
+        Returns: {
+          admin_resolved_at: string
+          assigned_admin_id: string
+          assigned_admin_name: string
+          attachments: Json
+          created_at: string
+          department_code: string
+          description: string
+          has_unread_messages: boolean
+          id: string
+          is_reopened: boolean
+          priority: string
+          reopen_count: number
+          resolution_notes: Json
+          resolved_at: string
+          status: string
+          ticket_number: string
+          title: string
+          updated_at: string
+          user_closed_at: string
+          user_email: string
+          user_full_name: string
+          user_id: string
+        }[]
+      }
+      get_tickets_optimized_for_admin: {
+        Args: {
+          p_admin_id?: string
+          p_department_code?: string
+          p_page_limit?: number
+          p_page_offset?: number
+        }
+        Returns: {
+          admin_resolved_at: string
+          assigned_admin_id: string
+          assigned_admin_name: string
+          attachments: Json
+          created_at: string
+          department_code: string
+          description: string
+          has_unread_messages: boolean
+          id: string
+          is_reopened: boolean
+          priority: string
+          reopen_count: number
+          resolution_notes: Json
+          resolved_at: string
+          status: string
+          ticket_number: string
+          title: string
+          updated_at: string
+          user_closed_at: string
+          user_email: string
+          user_full_name: string
+          user_id: string
+        }[]
+      }
+      get_tickets_with_profiles: {
+        Args: { page_limit?: number; page_offset?: number }
+        Returns: {
+          admin_resolved_at: string
+          assigned_admin_id: string
+          assigned_admin_name: string
+          attachments: Json
+          created_at: string
+          department_code: string
+          description: string
+          id: string
+          is_reopened: boolean
+          priority: string
+          reopen_count: number
+          resolution_notes: Json
+          resolved_at: string
+          status: string
+          ticket_number: string
+          title: string
+          updated_at: string
+          user_closed_at: string
+          user_email: string
+          user_full_name: string
+          user_id: string
+        }[]
+      }
+>>>>>>> main
       is_system_in_maintenance: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1142,6 +1337,13 @@ export type Database = {
         }
         Returns: string
       }
+<<<<<<< HEAD
+=======
+      update_admin_message_read_status: {
+        Args: { p_admin_id?: string; p_ticket_id: string }
+        Returns: undefined
+      }
+>>>>>>> main
       update_user_presence: {
         Args: {
           p_department_code: string

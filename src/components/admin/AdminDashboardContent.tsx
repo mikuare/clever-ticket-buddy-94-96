@@ -29,6 +29,8 @@ const AdminDashboardContent = () => {
     selectedDepartment,
     selectedTicket,
     loading,
+    hasMore,
+    totalCount,
     departmentNotifications,
     userNotifications,
     ticketMessageCounts,
@@ -52,6 +54,10 @@ const AdminDashboardContent = () => {
     handleOpenTicketChat,
     handleCloseTicketChat,
     fetchTickets,
+    loadMore,
+    loadAllTickets,
+    showAllTickets,
+    setShowAllTickets,
     clearNotificationForTicket,
     handleOpenEscalationModal,
     handleCloseEscalationModal,
@@ -133,6 +139,12 @@ const AdminDashboardContent = () => {
             departments={departments}
             selectedDepartment={selectedDepartment}
             loading={loading}
+            hasMore={hasMore}
+            totalCount={totalCount}
+          onLoadMore={loadMore}
+          onLoadAllTickets={loadAllTickets}
+          showAllTickets={showAllTickets}
+          onToggleShowAll={setShowAllTickets}
             departmentNotifications={departmentNotifications}
             userNotifications={userNotifications}
             ticketMessageCounts={ticketMessageCounts}

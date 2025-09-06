@@ -1,9 +1,9 @@
 
-export const calculateTimeRemaining = (adminResolvedAt: string) => {
+export const calculateTimeRemaining = (adminResolvedAt: string, autoCloseHours: number = 24) => {
   const resolvedTime = new Date(adminResolvedAt);
   const now = new Date();
-  const twentyFourHoursLater = new Date(resolvedTime.getTime() + 24 * 60 * 60 * 1000);
-  const timeRemaining = twentyFourHoursLater.getTime() - now.getTime();
+  const autoCloseTime = new Date(resolvedTime.getTime() + autoCloseHours * 60 * 60 * 1000);
+  const timeRemaining = autoCloseTime.getTime() - now.getTime();
   
   if (timeRemaining <= 0) return 0;
   return Math.ceil(timeRemaining / 1000);

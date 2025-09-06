@@ -3,12 +3,20 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 
 interface UseIdleTimerProps {
+<<<<<<< HEAD
   idleTime?: number; // in milliseconds, default 15 minutes
+=======
+  idleTime?: number; // in milliseconds, default 1 hour
+>>>>>>> main
   warningTime?: number; // in milliseconds, default 2 minutes before logout
 }
 
 export const useIdleTimer = ({ 
+<<<<<<< HEAD
   idleTime = 15 * 60 * 1000, // 15 minutes
+=======
+  idleTime = 60 * 60 * 1000, // 1 hour
+>>>>>>> main
   warningTime = 2 * 60 * 1000 // 2 minutes
 }: UseIdleTimerProps = {}) => {
   const { user, signOut } = useAuth();

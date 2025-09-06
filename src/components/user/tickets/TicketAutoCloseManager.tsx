@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import type { Ticket } from '@/hooks/useUserTickets';
 import { calculateTimeRemaining } from './TicketTimerUtils';
 import { useTicketActions } from './useTicketActions';
+import { useAutoCloseSettings } from '@/hooks/useAutoCloseSettings';
 
 interface TicketAutoCloseManagerProps {
   tickets: Ticket[];
@@ -13,22 +14,28 @@ interface TicketAutoCloseManagerProps {
 export const useTicketAutoCloseManager = ({ tickets, onTicketsUpdate }: Omit<TicketAutoCloseManagerProps, 'onTimersUpdate'>) => {
   const [autoCloseTimers, setAutoCloseTimers] = useState<Map<string, number>>(new Map());
   const { handleCloseTicket } = useTicketActions(onTicketsUpdate);
+  const { autoCloseHours } = useAutoCloseSettings();
 
   // Set up auto-close timers for resolved tickets
   useEffect(() => {
+    console.log('Recalculating auto-close timers with hours:', autoCloseHours, 'for', tickets.length, 'tickets');
     const newTimers = new Map();
     
     tickets.forEach(ticket => {
       if (ticket.status === 'Resolved' && ticket.admin_resolved_at && !ticket.user_closed_at) {
-        const timeRemaining = calculateTimeRemaining(ticket.admin_resolved_at);
+        const timeRemaining = calculateTimeRemaining(ticket.admin_resolved_at, autoCloseHours);
+        console.log(`Ticket ${ticket.ticket_number}: ${timeRemaining} seconds remaining (${autoCloseHours} hours setting) - Resolved at: ${ticket.admin_resolved_at}`);
         if (timeRemaining > 0) {
           newTimers.set(ticket.id, timeRemaining);
+        } else {
+          console.log(`Ticket ${ticket.ticket_number}: Timer expired, should auto-close`);
         }
       }
     });
     
+    console.log('Setting auto-close timers:', Array.from(newTimers.entries()));
     setAutoCloseTimers(newTimers);
-  }, [tickets]);
+  }, [tickets, autoCloseHours]);
 
   // Update timers every second and auto-close when timer expires
   useEffect(() => {

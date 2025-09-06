@@ -15,7 +15,17 @@ export const useAdminDashboard = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
 
   // Core data management
-  const { tickets, stats, loading, fetchTickets } = useTicketsManagement(isAdmin, isVerifyingAdmin);
+  const { tickets, stats, loading, hasMore, totalCount, loadMore, loadAllTickets, fetchTickets } = useTicketsManagement(isAdmin, isVerifyingAdmin);
+  const [showAllTickets, setShowAllTickets] = useState(false);
+
+  // Handle toggle for showing all tickets
+  const handleToggleShowAll = async (showAll: boolean) => {
+    setShowAllTickets(showAll);
+    if (showAll && hasMore) {
+      // Load all remaining tickets when toggle is turned on
+      await loadAllTickets();
+    }
+  };
   const { departments } = useDepartmentsManagement(isAdmin, isVerifyingAdmin);
 
   // Notifications management
@@ -90,6 +100,8 @@ export const useAdminDashboard = () => {
     selectedDepartment,
     selectedTicket,
     loading,
+    hasMore,
+    totalCount,
     departmentNotifications,
     userNotifications,
     ticketMessageCounts,
@@ -122,6 +134,10 @@ export const useAdminDashboard = () => {
     handleOpenTicketChat: handleOpenTicketChatWithNotificationClear,
     handleCloseTicketChat,
     fetchTickets,
+    loadMore,
+    loadAllTickets,
+    showAllTickets,
+    setShowAllTickets: handleToggleShowAll,
     clearNotificationForTicket,
     
     // Escalation actions
