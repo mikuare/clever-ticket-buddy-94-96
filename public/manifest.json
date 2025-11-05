@@ -1,0 +1,65 @@
+{
+  "name": "QMAZ HOLDINGS INC. - HELP DESK SYSTEM",
+  "short_name": "QMAZ Helpdesk",
+  "description": "QMAZ HOLDINGS INC. HELP DESK SYSTEM - Your Gateway to Technical Support",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/images/qmaz holdings logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/qmaz holdings logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/qmaz holdings logo.jpg",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/jpeg"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Create Ticket",
+      "short_name": "New Ticket",
+      "description": "Create a new support ticket",
+      "url": "/?action=create-ticket",
+      "icons": [
+        {
+          "src": "/images/qmaz holdings logo.jpg",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "My Tickets",
+      "short_name": "Tickets",
+      "description": "View your support tickets",
+      "url": "/?action=my-tickets",
+      "icons": [
+        {
+          "src": "/images/qmaz holdings logo.jpg",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "categories": ["productivity", "business", "utilities"],
+  "screenshots": [
+    {
+      "src": "/images/qmaz holdings logo.jpg",
+      "sizes": "540x720",
+      "type": "image/jpeg"
+    }
+  ]
+}
+

@@ -1,0 +1,311 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { X, Download, Smartphone } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+const PWAInstallPrompt = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [canInstall, setCanInstall] = useState(false);
+
+  useEffect(() => {
+    console.log('🔍 PWA Prompt: Initializing...');
+    
+    // Check if user has already dismissed the prompt
+    const dismissed = localStorage.getItem('pwa-prompt-dismissed');
+    const installed = localStorage.getItem('pwa-installed');
+    
+    console.log('📊 PWA Status:', { dismissed, installed });
+    
+    if (dismissed === 'true') {
+      console.log('❌ PWA Prompt: Previously dismissed, not showing');
+      return;
+    }
+
+    if (installed === 'true') {
+      console.log('✅ PWA Prompt: Already installed, not showing');
+      return;
+    }
+
+    // Check if app is already installed (running in standalone mode)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      console.log('✅ PWA Prompt: Running in standalone mode');
+      localStorage.setItem('pwa-installed', 'true');
+      return;
+    }
+
+    // Detect iOS devices
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    console.log('📱 Device Type:', isIOSDevice ? 'iOS' : 'Android/Desktop');
+    setIsIOS(isIOSDevice);
+
+    // Listen for the beforeinstallprompt event (Android/Desktop)
+    const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('🎯 PWA Prompt: beforeinstallprompt event fired!');
+      
+      // Prevent the default browser prompt
+      e.preventDefault();
+      
+      // Store the event for later use
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setCanInstall(true);
+      
+      // Show our custom prompt after a short delay
+      setTimeout(() => {
+        console.log('✨ PWA Prompt: Showing install prompt (Android/Desktop)');
+        setShowPrompt(true);
+      }, 2000); // Show after 2 seconds
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // For iOS devices, always show manual install instructions after delay
+    if (isIOSDevice) {
+      console.log('📱 PWA Prompt: Scheduling iOS instructions');
+      setTimeout(() => {
+        console.log('✨ PWA Prompt: Showing iOS instructions');
+        setShowPrompt(true);
+        setCanInstall(true);
+      }, 2000);
+    } else {
+      // For Android/Desktop without beforeinstallprompt, still show generic install info
+      console.log('⏰ PWA Prompt: Setting fallback timer');
+      setTimeout(() => {
+        if (!showPrompt && !dismissed) {
+          console.log('💡 PWA Prompt: Showing fallback prompt (beforeinstallprompt not fired)');
+          setShowPrompt(true);
+          setCanInstall(true);
+        }
+      }, 3000); // Fallback after 3 seconds
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    console.log('🎯 Install button clicked!');
+    
+    if (deferredPrompt) {
+      console.log('✅ Using deferred prompt');
+      try {
+        // Show the install prompt
+        await deferredPrompt.prompt();
+
+        // Wait for the user's response
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log('📊 User choice:', outcome);
+
+        if (outcome === 'accepted') {
+          console.log('✅ User accepted the install prompt');
+          localStorage.setItem('pwa-installed', 'true');
+        } else {
+          console.log('❌ User dismissed the install prompt');
+        }
+
+        // Clear the deferredPrompt
+        setDeferredPrompt(null);
+      } catch (error) {
+        console.error('❌ Install prompt error:', error);
+      }
+    } else if (isIOS) {
+      console.log('📱 iOS - User will follow manual instructions');
+    } else {
+      console.log('ℹ️ No deferred prompt available - showing generic instructions');
+    }
+
+    // Hide the prompt
+    setShowPrompt(false);
+  };
+
+  const handleDismiss = () => {
+    console.log('❌ User dismissed permanently');
+    setShowPrompt(false);
+    localStorage.setItem('pwa-prompt-dismissed', 'true');
+  };
+
+  const handleRemindLater = () => {
+    console.log('⏰ User chose remind later');
+    setShowPrompt(false);
+    // Don't set dismissed, so it can show again on next visit
+  };
+
+  if (!showPrompt) {
+    console.log('👁️ PWA Prompt: Not showing (showPrompt = false)');
+    return null;
+  }
+
+  console.log('✨ PWA Prompt: Rendering! (iOS:', isIOS, ', canInstall:', canInstall, ')');
+
+  // iOS install instructions
+  if (isIOS) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300">
+        <Card className="w-full max-w-md animate-in slide-in-from-bottom duration-500 sm:slide-in-from-bottom-0">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <Smartphone className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Install QMAZ Helpdesk</h3>
+                  <p className="text-sm text-muted-foreground">Get quick access anytime</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDismiss}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Install this app on your iPhone for quick and easy access:
+              </p>
+
+              <ol className="space-y-3 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+                    1
+                  </span>
+                  <span>
+                    Tap the <strong>Share</strong> button{' '}
+                    <svg className="inline w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 14H4v-7h2v5h12v-5h2v7z"/>
+                    </svg>{' '}
+                    at the bottom of Safari
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+                    2
+                  </span>
+                  <span>
+                    Scroll down and tap <strong>"Add to Home Screen"</strong>
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+                    3
+                  </span>
+                  <span>
+                    Tap <strong>"Add"</strong> in the top right corner
+                  </span>
+                </li>
+              </ol>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={handleRemindLater}
+                  className="flex-1"
+                >
+                  Maybe Later
+                </Button>
+                <Button
+                  onClick={handleDismiss}
+                  className="flex-1"
+                >
+                  Got It
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Android/Desktop install prompt
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300">
+      <Card className="w-full max-w-md animate-in slide-in-from-bottom duration-500 sm:slide-in-from-bottom-0">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <Download className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Install QMAZ Helpdesk</h3>
+                <p className="text-sm text-muted-foreground">Add to your home screen</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDismiss}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <p className="text-sm font-medium">Why install?</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li className="flex items-center gap-2">
+                  <span className="text-green-600">✓</span>
+                  <span>Quick access from your home screen</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-600">✓</span>
+                  <span>Works offline</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-600">✓</span>
+                  <span>Faster loading times</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-green-600">✓</span>
+                  <span>Feels like a native app</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleRemindLater}
+                className="flex-1"
+              >
+                Maybe Later
+              </Button>
+              <Button
+                onClick={handleInstallClick}
+                className="flex-1 gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Install Now
+              </Button>
+            </div>
+
+            <button
+              onClick={handleDismiss}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+            >
+              Don't show this again
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default PWAInstallPrompt;
+
