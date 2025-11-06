@@ -73,20 +73,30 @@ const PWAInstallPrompt = () => {
   const handleInstallClick = async () => {
     if (deferredPrompt) {
       try {
-        // Show the install prompt
+        // Show the NATIVE browser install prompt (like APK install dialog)
         await deferredPrompt.prompt();
 
         // Wait for the user's response
         const { outcome } = await deferredPrompt.userChoice;
 
         if (outcome === 'accepted') {
+          // User accepted! App is now being installed like a native app
           localStorage.setItem('pwa-installed', 'true');
+          
+          // Hide our custom prompt immediately
+          setShowPrompt(false);
+          
+          // The app will now appear on their home screen/app drawer!
+          return;
+        } else {
+          // User dismissed the native install dialog
+          console.log('User cancelled installation');
         }
 
         // Clear the deferredPrompt
         setDeferredPrompt(null);
       } catch (error) {
-        // Silent error handling
+        console.error('Installation error:', error);
       }
     }
 
@@ -252,10 +262,13 @@ const PWAInstallPrompt = () => {
             )}
 
             {deferredPrompt && (
-              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3 rounded-lg">
-                <p className="text-sm font-medium text-green-900 dark:text-green-100 flex items-center gap-2">
-                  <span className="text-lg">✅</span>
-                  <span>Ready to install with one click!</span>
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-950/30 border-2 border-green-400 dark:border-green-600 p-4 rounded-lg shadow-sm">
+                <p className="text-sm font-bold text-green-900 dark:text-green-100 flex items-center gap-2 mb-2">
+                  <span className="text-xl">✅</span>
+                  <span>Ready to Install Like a Native App!</span>
+                </p>
+                <p className="text-xs text-green-800 dark:text-green-200">
+                  Click "Install App" below to add QMAZ Helpdesk to your home screen. It will work like a real application!
                 </p>
               </div>
             )}
@@ -270,10 +283,10 @@ const PWAInstallPrompt = () => {
               </Button>
               <Button
                 onClick={handleInstallClick}
-                className="flex-1 gap-2"
+                className={`flex-1 gap-2 ${deferredPrompt ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 animate-pulse' : ''}`}
               >
                 <Download className="w-4 h-4" />
-                {deferredPrompt ? 'Install Now' : 'Got It'}
+                {deferredPrompt ? '📱 Install App' : 'Got It'}
               </Button>
             </div>
 
