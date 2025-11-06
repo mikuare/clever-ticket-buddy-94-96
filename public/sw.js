@@ -1,122 +1,58 @@
-// Service Worker for PWA
+// Service Worker for QMAZ Helpdesk PWA
 const CACHE_NAME = 'qmaz-helpdesk-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/images/qmaz holdings logo.jpg'
+  '/images/qmaz holdings logo.jpg',
+  '/manifest.json'
 ];
 
-// Install event - cache important resources
+// Install Service Worker
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Service Worker: Caching files');
+        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
-      .then(() => self.skipWaiting())
   );
+  self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
+  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Clearing old cache:', cacheName);
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => self.clients.claim())
+    })
   );
+  return self.clients.claim();
 });
 
-// Fetch event - CRITICAL: This proves to Chrome the app works offline!
+// Fetch - Network First Strategy
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip cross-origin requests
-  if (url.origin !== location.origin) {
-    return;
-  }
-
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
-    return;
-  }
-
-  // Handle navigation requests (pages)
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cache the page
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // If valid response, clone and cache it
+        if (response && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
+            cache.put(event.request, responseClone);
           });
-          return response;
-        })
-        .catch(() => {
-          // Network failed - return cached page or index
-          return caches.match(request).then((cached) => {
-            return cached || caches.match('/index.html') || caches.match('/');
-          });
-        })
-    );
-    return;
-  }
-
-  // Handle all other requests (assets, API, etc.)
-  event.respondWith(
-    caches.match(request)
-      .then((cached) => {
-        // Return cached if available
-        if (cached) {
-          // Still fetch in background to update cache
-          fetch(request).then((response) => {
-            if (response && response.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, response.clone());
-              });
-            }
-          }).catch(() => {
-            // Fetch failed but we have cache, ignore error
-          });
-          return cached;
         }
-
-        // Not in cache - fetch from network
-        return fetch(request)
-          .then((response) => {
-            // Cache successful responses
-            if (response && response.status === 200) {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              });
-            }
-            return response;
-          })
-          .catch((error) => {
-            console.error('Fetch failed:', error);
-            // Return offline fallback if available
-            return caches.match('/index.html').catch(() => {
-              return new Response('Offline', {
-                status: 503,
-                statusText: 'Service Unavailable',
-                headers: new Headers({
-                  'Content-Type': 'text/plain'
-                })
-              });
-            });
-          });
+        return response;
+      })
+      .catch(() => {
+        // If network fails, try cache
+        return caches.match(event.request);
       })
   );
 });
