@@ -11,7 +11,7 @@ import MaintenanceNotice from '@/components/shared/MaintenanceNotice';
 import AuthContainer from '@/components/AuthContainer';
 import { AuthProvider } from '@/hooks/useAuth';
 import ChatBotWrapper from '@/components/chatbot/ChatBotWrapper';
-import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
+import PWASlideNotification from '@/components/pwa/PWASlideNotification';
 
 const IndexPage = () => {
   const { user, profile, loading, showSuspensionNotice, setShowSuspensionNotice } = useAuth();
@@ -85,11 +85,11 @@ const IndexPage = () => {
 const Index = () => {
   return (
     <AuthProvider>
+      {/* PWA Slide Notification - Shows at top on every page load for 4 seconds */}
+      <PWASlideNotification />
       <IndexPage />
       {/* FREE Helpdesk Assistant Chatbot - Only shows on landing page (before login) */}
       <ChatBotWrapper />
-      {/* PWA Install Prompt - Shows on all pages for non-installed users */}
-      <PWAInstallPrompt />
     </AuthProvider>
   );
 };
