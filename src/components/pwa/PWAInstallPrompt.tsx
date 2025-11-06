@@ -56,13 +56,14 @@ const PWAInstallPrompt = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // For iOS devices, always show manual install instructions after delay
-    if (isIOSDevice) {
-      setTimeout(() => {
+    // ALWAYS show prompt after delay (even if beforeinstallprompt doesn't fire)
+    // This ensures users always see the install option
+    setTimeout(() => {
+      if (!promptShown) {
+        setCanInstall(true); // Assume installable
         setShowPrompt(true);
-        setCanInstall(true);
-      }, 2000);
-    }
+      }
+    }, 3000); // Show after 3 seconds if event hasn't fired
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -239,6 +240,26 @@ const PWAInstallPrompt = () => {
               </ul>
             </div>
 
+            {!deferredPrompt && (
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4 rounded-lg space-y-2">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">📍 How to install manually:</p>
+                <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-1.5 list-decimal list-inside">
+                  <li>Look for the <strong>install icon (⊕)</strong> in your browser's address bar (top right)</li>
+                  <li>Or click the <strong>3-dots menu (⋮)</strong> and select <strong>"Install app"</strong></li>
+                  <li>If you don't see it, try refreshing the page or visiting again later</li>
+                </ol>
+              </div>
+            )}
+
+            {deferredPrompt && (
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3 rounded-lg">
+                <p className="text-sm font-medium text-green-900 dark:text-green-100 flex items-center gap-2">
+                  <span className="text-lg">✅</span>
+                  <span>Ready to install with one click!</span>
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -252,7 +273,7 @@ const PWAInstallPrompt = () => {
                 className="flex-1 gap-2"
               >
                 <Download className="w-4 h-4" />
-                Install Now
+                {deferredPrompt ? 'Install Now' : 'Got It'}
               </Button>
             </div>
 
