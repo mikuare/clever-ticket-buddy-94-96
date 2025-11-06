@@ -24,54 +24,92 @@ const PWASlideNotification = () => {
       return;
     }
 
+    let showTimer: NodeJS.Timeout;
+    let hideTimer: NodeJS.Timeout;
+    let promptReceived = false;
+
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('🎉 beforeinstallprompt event fired! PWA is installable!');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      promptReceived = true;
+
+      // Show notification immediately when event fires
+      showTimer = setTimeout(() => {
+        setShowNotification(true);
+        console.log('✅ Showing install notification');
+      }, 1000);
+
+      // Auto-hide after 4 seconds
+      hideTimer = setTimeout(() => {
+        setShowNotification(false);
+      }, 5000);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Show notification after 1 second
-    const showTimer = setTimeout(() => {
-      setShowNotification(true);
-    }, 1000);
-
-    // Auto-hide after 4 seconds (if user doesn't interact)
-    const hideTimer = setTimeout(() => {
-      setShowNotification(false);
-    }, 5000); // 1 second delay + 4 seconds display = 5 seconds total
+    // Debug: Check why event might not fire
+    setTimeout(() => {
+      if (!promptReceived) {
+        console.warn('⚠️ beforeinstallprompt has not fired yet.');
+        console.log('Possible reasons:');
+        console.log('1. Not enough user engagement (need 2+ visits over 5+ minutes)');
+        console.log('2. Recently dismissed install prompt (3 month cooldown)');
+        console.log('3. Service worker not ready');
+        console.log('4. PWA criteria not fully met');
+        console.log('\nTo test: Use Incognito mode or visit chrome://flags and enable:');
+        console.log('"Bypass user engagement checks" (#bypass-app-banner-engagement-checks)');
+      }
+    }, 3000);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      clearTimeout(showTimer);
-      clearTimeout(hideTimer);
+      if (showTimer) clearTimeout(showTimer);
+      if (hideTimer) clearTimeout(hideTimer);
     };
   }, []);
 
   const handleInstall = async () => {
     if (deferredPrompt) {
+      console.log('✅ Showing NATIVE browser install dialog...');
       try {
-        // Show the native browser install prompt
+        // Show the NATIVE browser install prompt (like APK install)
         await deferredPrompt.prompt();
         
         const { outcome } = await deferredPrompt.userChoice;
+        console.log('📊 User choice:', outcome);
         
         if (outcome === 'accepted') {
+          console.log('🎉 User accepted! App is installing...');
           localStorage.setItem('pwa-installed', 'true');
           setShowNotification(false);
+          
+          // Show success message
+          setTimeout(() => {
+            alert('✅ App installed successfully! Check your home screen or app drawer.');
+          }, 500);
+        } else {
+          console.log('❌ User dismissed the install dialog');
         }
         
         setDeferredPrompt(null);
       } catch (error) {
-        console.error('Installation failed:', error);
+        console.error('❌ Installation failed:', error);
+        alert('Installation failed. Please try again or install manually from browser menu.');
       }
     } else {
-      // If no deferred prompt, try to guide user to browser install option
-      // Check if browser supports installation
-      if ('serviceWorker' in navigator) {
-        alert('To install:\n\n1. Look for the install icon (⊕) in your browser address bar\n2. Or tap the menu (⋮) and select "Install app" or "Add to Home screen"');
-      }
+      console.warn('⚠️ No deferred prompt available');
+      console.log('This means Chrome has not offered installation yet.');
+      console.log('Showing manual instructions...');
+      
+      // Show detailed instructions
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const message = isMobile
+        ? '📱 To install as an app:\n\n1. Tap the menu icon (⋮) in your browser\n2. Select "Add to Home screen" or "Install app"\n3. Tap "Install" or "Add"\n4. The app will appear on your home screen!\n\nNote: You may need to visit this site a few more times before Chrome offers installation.'
+        : '💻 To install as an app:\n\n1. Look for the install icon (⊕) in your browser address bar\n2. Or click the menu (⋮) and select "Install app"\n3. Click "Install"\n4. The app will be added to your computer!\n\nNote: You may need to visit this site a few more times before Chrome offers installation.';
+      
+      alert(message);
     }
     setShowNotification(false);
   };

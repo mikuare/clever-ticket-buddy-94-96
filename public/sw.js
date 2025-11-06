@@ -36,37 +36,87 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - Network first, fallback to cache
+// Fetch event - CRITICAL: This proves to Chrome the app works offline!
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests and non-GET requests
-  if (!event.request.url.startsWith(self.location.origin) || event.request.method !== 'GET') {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip cross-origin requests
+  if (url.origin !== location.origin) {
     return;
   }
 
+  // Skip non-GET requests
+  if (request.method !== 'GET') {
+    return;
+  }
+
+  // Handle navigation requests (pages)
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Cache the page
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseClone);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Network failed - return cached page or index
+          return caches.match(request).then((cached) => {
+            return cached || caches.match('/index.html') || caches.match('/');
+          });
+        })
+    );
+    return;
+  }
+
+  // Handle all other requests (assets, API, etc.)
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Check if valid response
-        if (!response || response.status !== 200) {
-          return caches.match(event.request).then(cachedResponse => cachedResponse || response);
+    caches.match(request)
+      .then((cached) => {
+        // Return cached if available
+        if (cached) {
+          // Still fetch in background to update cache
+          fetch(request).then((response) => {
+            if (response && response.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, response.clone());
+              });
+            }
+          }).catch(() => {
+            // Fetch failed but we have cache, ignore error
+          });
+          return cached;
         }
 
-        // Clone the response
-        const responseToCache = response.clone();
-
-        // Cache the new response
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
+        // Not in cache - fetch from network
+        return fetch(request)
+          .then((response) => {
+            // Cache successful responses
+            if (response && response.status === 200) {
+              const responseClone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseClone);
+              });
+            }
+            return response;
+          })
+          .catch((error) => {
+            console.error('Fetch failed:', error);
+            // Return offline fallback if available
+            return caches.match('/index.html').catch(() => {
+              return new Response('Offline', {
+                status: 503,
+                statusText: 'Service Unavailable',
+                headers: new Headers({
+                  'Content-Type': 'text/plain'
+                })
+              });
+            });
           });
-
-        return response;
-      })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(event.request).then((response) => {
-          return response || caches.match('/');
-        });
       })
   );
 });
