@@ -12,7 +12,6 @@ import AuthContainer from '@/components/AuthContainer';
 import { AuthProvider } from '@/hooks/useAuth';
 import ChatBotWrapper from '@/components/chatbot/ChatBotWrapper';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
-import PWADebugButton from '@/components/pwa/PWADebugButton';
 
 const IndexPage = () => {
   const { user, profile, loading, showSuspensionNotice, setShowSuspensionNotice } = useAuth();
@@ -91,8 +90,6 @@ const Index = () => {
       <ChatBotWrapper />
       {/* PWA Install Prompt - Shows on all pages for non-installed users */}
       <PWAInstallPrompt />
-      {/* PWA Debug Button - For testing (remove after confirming it works) */}
-      <PWADebugButton />
     </AuthProvider>
   );
 };
