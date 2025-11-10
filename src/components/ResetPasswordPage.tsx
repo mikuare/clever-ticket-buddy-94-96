@@ -330,7 +330,7 @@ const ResetPasswordPage = () => {
 
           <div className="text-center mt-8 text-sm text-gray-500">
             <p>QMAZ HOLDING HELP DESK SYSTEM</p>
-            <p>Version 1.0</p>
+            <p>Version 1.2</p>
             <p>© Digital System Team 2025</p>
           </div>
         </div>

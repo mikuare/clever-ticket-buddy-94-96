@@ -1,9 +1,9 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-interface UserPresence {
+interface RawUserPresence {
   id: string;
   user_id: string;
   is_online: boolean;
@@ -14,10 +14,15 @@ interface UserPresence {
   updated_at: string;
 }
 
+export interface UserPresence extends RawUserPresence {
+  avatar_url: string | null;
+}
+
 export const useRealTimeUserPresence = () => {
   const { user, profile } = useAuth();
   const [allUsers, setAllUsers] = useState<UserPresence[]>([]);
   const [loading, setLoading] = useState(true);
+  const avatarCacheRef = useRef<Map<string, string | null>>(new Map());
 
   // Track current user's presence
   useEffect(() => {
@@ -116,7 +121,34 @@ export const useRealTimeUserPresence = () => {
 
         if (error) throw error;
         if (mounted) {
-          setAllUsers(data || []);
+          const rawUsers = (data || []) as RawUserPresence[];
+          const userIds = rawUsers.map(u => u.user_id);
+
+          if (userIds.length > 0) {
+            const uncachedIds = userIds.filter(id => !avatarCacheRef.current.has(id));
+
+            if (uncachedIds.length > 0) {
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('id, avatar_url')
+                .in('id', uncachedIds);
+
+              if (!profileError && profileData) {
+                profileData.forEach(profile => {
+                  avatarCacheRef.current.set(profile.id, profile.avatar_url ?? null);
+                });
+              } else if (profileError) {
+                console.error('Error fetching user avatars:', profileError);
+              }
+            }
+          }
+
+          const enrichedUsers = rawUsers.map(userPresence => ({
+            ...userPresence,
+            avatar_url: avatarCacheRef.current.get(userPresence.user_id) ?? null
+          }));
+
+          setAllUsers(enrichedUsers.sort((a, b) => a.full_name.localeCompare(b.full_name)));
         }
       } catch (error) {
         console.error('Error fetching user presence:', error);
@@ -140,19 +172,39 @@ export const useRealTimeUserPresence = () => {
             schema: 'public',
             table: 'user_presence'
           },
-          (payload) => {
+          async (payload) => {
             if (!mounted) return;
             
             console.log('Presence change received:', payload);
             
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              const newPresence = payload.new as UserPresence;
+              const rawPresence = payload.new as RawUserPresence;
+
+              if (!avatarCacheRef.current.has(rawPresence.user_id)) {
+                const { data: profileData, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('avatar_url')
+                  .eq('id', rawPresence.user_id)
+                  .maybeSingle();
+
+                if (!profileError) {
+                  avatarCacheRef.current.set(rawPresence.user_id, profileData?.avatar_url ?? null);
+                } else {
+                  console.error('Error fetching avatar for user presence update:', profileError);
+                }
+              }
+
+              const enrichedPresence: UserPresence = {
+                ...rawPresence,
+                avatar_url: avatarCacheRef.current.get(rawPresence.user_id) ?? null
+              };
+
               setAllUsers(prev => {
-                const filtered = prev.filter(u => u.user_id !== newPresence.user_id);
-                return [...filtered, newPresence].sort((a, b) => a.full_name.localeCompare(b.full_name));
+                const filtered = prev.filter(u => u.user_id !== enrichedPresence.user_id);
+                return [...filtered, enrichedPresence].sort((a, b) => a.full_name.localeCompare(b.full_name));
               });
             } else if (payload.eventType === 'DELETE') {
-              const deletedPresence = payload.old as UserPresence;
+              const deletedPresence = payload.old as RawUserPresence;
               setAllUsers(prev => prev.filter(u => u.user_id !== deletedPresence.user_id));
             }
           }

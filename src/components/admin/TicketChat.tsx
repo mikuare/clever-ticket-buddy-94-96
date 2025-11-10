@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import TicketChatHeader from './chat/TicketChatHeader';
 import MessagesList from './chat/MessagesList';
@@ -13,9 +13,10 @@ interface TicketChatProps {
   isOpen: boolean;
   onClose: () => void;
   onTicketUpdated?: () => void;
+  onMessagesViewed?: (ticketId: string) => Promise<void> | void;
 }
 
-const TicketChat = ({ ticket, isOpen, onClose, onTicketUpdated }: TicketChatProps) => {
+const TicketChat = ({ ticket, isOpen, onClose, onTicketUpdated, onMessagesViewed }: TicketChatProps) => {
   const { 
     messages, 
     loading, 
@@ -29,6 +30,7 @@ const TicketChat = ({ ticket, isOpen, onClose, onTicketUpdated }: TicketChatProp
 
   const [replyingTo, setReplyingTo] = useState<TicketMessage | null>(null);
   const [editingMessage, setEditingMessage] = useState<TicketMessage | null>(null);
+  const lastAcknowledgedMessageId = useRef<string | null>(null);
 
   // Check if chat should be disabled (ticket is resolved and closed)
   const isChatDisabled = ticket.status === 'Resolved' || ticket.status === 'Closed';
@@ -70,6 +72,30 @@ const TicketChat = ({ ticket, isOpen, onClose, onTicketUpdated }: TicketChatProp
     currentUserId,
     loading
   });
+
+  useEffect(() => {
+    if (!isOpen) {
+      lastAcknowledgedMessageId.current = null;
+    }
+  }, [isOpen]);
+
+  const latestMessageId = messages.length > 0 ? messages[messages.length - 1].id : '__none__';
+
+  useEffect(() => {
+    if (!isOpen || !onMessagesViewed) {
+      return;
+    }
+
+    if (lastAcknowledgedMessageId.current === latestMessageId) {
+      return;
+    }
+
+    lastAcknowledgedMessageId.current = latestMessageId;
+
+    Promise.resolve(onMessagesViewed(ticket.id)).catch((error: unknown) => {
+      console.error('Failed to clear admin message notifications for ticket', ticket.id, error);
+    });
+  }, [isOpen, latestMessageId, onMessagesViewed, ticket.id]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

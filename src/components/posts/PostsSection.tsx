@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { PostReactions } from './PostReactions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import EmojiPicker from '@/components/shared/EmojiPicker';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Post {
   id: string;
@@ -22,14 +23,6 @@ interface Post {
   created_at: string;
 }
 
-interface PostReaction {
-  id: string;
-  post_id: string;
-  user_id: string;
-  user_name: string;
-  emoji: string;
-}
-
 interface AdminProfile {
   id: string;
   avatar_url?: string;
@@ -38,7 +31,6 @@ interface AdminProfile {
 
 const PostsSection = () => {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [reactions, setReactions] = useState<PostReaction[]>([]);
   const [adminProfiles, setAdminProfiles] = useState<Map<string, AdminProfile>>(new Map());
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [title, setTitle] = useState('');
@@ -49,6 +41,7 @@ const PostsSection = () => {
   });
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const isAdmin = profile?.is_admin;
 
@@ -60,7 +53,6 @@ const PostsSection = () => {
 
   useEffect(() => {
     fetchPosts();
-    fetchReactions();
     
     // Setup realtime subscriptions with cleanup
     const cleanup = subscribeToChanges();
@@ -106,19 +98,6 @@ const PostsSection = () => {
     }
   };
 
-  const fetchReactions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('post_reactions')
-        .select('*');
-
-      if (error) throw error;
-      setReactions(data || []);
-    } catch (error) {
-      console.error('Error fetching reactions:', error);
-    }
-  };
-
   const subscribeToChanges = () => {
     // Enhanced realtime subscription for immediate updates
     const postsChannel = supabase
@@ -131,15 +110,6 @@ const PostsSection = () => {
         console.log('Posts change detected:', payload);
         fetchPosts();
       })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public', 
-        table: 'post_reactions'
-      }, (payload) => {
-        console.log('Reactions change detected:', payload);
-        // Immediate reaction update for real-time feel
-        fetchReactions();
-      })
       .subscribe((status) => {
         console.log('Posts realtime status:', status);
       });
@@ -151,31 +121,60 @@ const PostsSection = () => {
   };
 
   const createPost = async () => {
-    if (!title.trim() || !content.trim() || !user || !profile) return;
+    if (!user || !profile) return;
+
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+
+    if (!trimmedTitle || !trimmedContent) {
+      toast({
+        title: "Missing information",
+        description: "Please provide both a title and content before creating a post.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('posts')
         .insert({
           admin_id: user.id,
           admin_name: profile.full_name,
-          title: title.trim(),
-          content: content.trim()
-        });
+          title: trimmedTitle,
+          content: trimmedContent
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      // Immediately refresh posts to show on dashboard
-      await fetchPosts();
-      
+      if (data) {
+        setPosts(prev => [data, ...prev]);
+
+        setAdminProfiles(prev => {
+          const next = new Map(prev);
+          next.set(data.admin_id, {
+            id: data.admin_id,
+            full_name: profile.full_name,
+            avatar_url: profile.avatar_url
+          });
+          return next;
+        });
+      }
+
       setTitle('');
       setContent('');
       setShowCreateForm(false);
+
       toast({
         title: "Success",
         description: "Post created successfully"
       });
+
+      // Background refresh to ensure consistent ordering and metadata
+      fetchPosts();
     } catch (error) {
       console.error('Error creating post:', error);
       toast({
@@ -209,10 +208,6 @@ const PostsSection = () => {
         variant: "destructive"
       });
     }
-  };
-
-  const getPostReactions = (postId: string) => {
-    return reactions.filter(r => r.post_id === postId);
   };
 
   if (!user || !profile) return null;
@@ -259,26 +254,28 @@ const PostsSection = () => {
         {/* Header with Create Button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">Information Posts</h2>
+            <MessageSquare className={isMobile ? "w-4 h-4 text-primary" : "w-5 h-5 text-primary"} />
+            <h2 className={isMobile ? "text-lg font-semibold text-foreground" : "text-xl font-semibold text-foreground"}>
+              {isMobile ? "Posts" : "Information Posts"}
+            </h2>
           </div>
           <div className="flex items-center gap-2">
             <Button
               onClick={togglePostsVisibility}
               variant="outline"
-              size="sm"
-              className="gap-2"
+              size={isMobile ? "sm" : "sm"}
+              className={isMobile ? "h-8 w-8 p-0" : "gap-2"}
               title={isPostsHidden ? "Show posts" : "Hide posts"}
             >
               {isPostsHidden ? (
                 <>
                   <Eye className="w-4 h-4" />
-                  Show Posts
+                  {!isMobile && <span>Show Posts</span>}
                 </>
               ) : (
                 <>
                   <EyeOff className="w-4 h-4" />
-                  Hide Posts
+                  {!isMobile && <span>Hide Posts</span>}
                 </>
               )}
             </Button>
@@ -287,10 +284,11 @@ const PostsSection = () => {
                 onClick={() => setShowCreateForm(!showCreateForm)}
                 variant="default"
                 size="sm"
-                className="gap-2"
+                className={isMobile ? "h-8 w-8 p-0" : "gap-2"}
+                title="Create Post"
               >
                 <Plus className="w-4 h-4" />
-                Create Post
+                {!isMobile && <span>Create Post</span>}
               </Button>
             )}
           </div>
@@ -418,7 +416,6 @@ const PostsSection = () => {
                           </div>
                           <PostReactions 
                             postId={post.id} 
-                            reactions={getPostReactions(post.id)}
                             currentUserId={user.id}
                             currentUserName={profile.full_name}
                           />

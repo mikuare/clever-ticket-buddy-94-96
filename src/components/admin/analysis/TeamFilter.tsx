@@ -2,6 +2,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Users, Monitor, Wrench } from 'lucide-react';
 import { AnimatedContainer } from '@/components/ui/animated-container';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export type TeamFilterType = 'all' | 'digitalization' | 'it';
 
@@ -20,6 +21,7 @@ const TeamFilter = ({
   itCount,
   totalCount
 }: TeamFilterProps) => {
+  const isMobile = useIsMobile();
   const getTeamIcon = (team: TeamFilterType) => {
     switch (team) {
       case 'digitalization':
@@ -61,9 +63,9 @@ const TeamFilter = ({
           <span>Filter by Team</span>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className={`flex flex-wrap items-center gap-3 ${isMobile ? 'w-full' : ''}`}>
           <Select value={selectedTeam} onValueChange={(value: TeamFilterType) => onTeamChange(value)}>
-            <SelectTrigger className="w-[200px] border-purple-300">
+            <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[200px]'} border-purple-300`}>
               <SelectValue placeholder="Select team" />
             </SelectTrigger>
             <SelectContent>
@@ -98,7 +100,7 @@ const TeamFilter = ({
           </Select>
         </div>
 
-        <div className="text-sm text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
+        <div className={`text-sm text-purple-600 bg-purple-100 px-3 py-1 rounded-full ${isMobile ? 'w-full text-center' : ''}`}>
           Showing {getTeamCount(selectedTeam)} {getTeamCount(selectedTeam) === 1 ? 'admin' : 'admins'} from {getTeamLabel(selectedTeam).toLowerCase()}
         </div>
       </div>

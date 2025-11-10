@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,23 +16,48 @@ interface PostReaction {
 
 interface PostReactionsProps {
   postId: string;
-  reactions: PostReaction[];
   currentUserId: string;
   currentUserName: string;
 }
 
 const EMOJI_OPTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '💯', '🔥', '👏'];
 
-export const PostReactions = ({ postId, reactions, currentUserId, currentUserName }: PostReactionsProps) => {
+export const PostReactions = ({ postId, currentUserId, currentUserName }: PostReactionsProps) => {
   const [loading, setLoading] = useState(false);
-  const [currentReactions, setCurrentReactions] = useState<PostReaction[]>(reactions);
+  const [currentReactions, setCurrentReactions] = useState<PostReaction[]>([]);
   const [isInCooldown, setIsInCooldown] = useState(false);
   const { toast } = useToast();
+  const isMountedRef = useRef(true);
 
-  // Initialize reactions from props
+  // Initial fetch to populate reactions for this post
   useEffect(() => {
-    setCurrentReactions(reactions);
-  }, [reactions]);
+    isMountedRef.current = true;
+
+    const loadReactions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('post_reactions')
+          .select('*')
+          .eq('post_id', postId);
+
+        if (error) {
+          throw error;
+        }
+
+        if (isMountedRef.current && data) {
+          setCurrentReactions(data);
+        }
+      } catch (error) {
+        console.error('Error loading reactions:', error);
+      }
+    };
+
+    loadReactions();
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [postId]);
 
   // Real-time subscription for instant reaction updates
   useEffect(() => {
@@ -53,7 +78,7 @@ export const PostReactions = ({ postId, reactions, currentUserId, currentUserNam
             .select('*')
             .eq('post_id', postId);
           
-          if (!error && data) {
+        if (!error && data && isMountedRef.current) {
             setCurrentReactions(data);
           }
         } catch (error) {
@@ -110,6 +135,7 @@ export const PostReactions = ({ postId, reactions, currentUserId, currentUserNam
   const toggleReaction = async (emoji: string) => {
     if (loading) return;
     
+    const previousReactions = currentReactions;
     const currentUserReaction = getUserCurrentReaction();
     const isCurrentEmoji = currentUserReaction?.emoji === emoji;
 
@@ -148,22 +174,22 @@ export const PostReactions = ({ postId, reactions, currentUserId, currentUserNam
     }
 
     try {
-      // Use a transaction-like approach: delete then insert in sequence
-      if (currentUserReaction) {
-        console.log('Deleting existing reaction:', currentUserReaction.id);
-        const { error: deleteError } = await supabase
-          .from('post_reactions')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', currentUserId);
 
-        if (deleteError) {
-          console.error('Delete error:', deleteError);
-          throw deleteError;
-        }
+      if (isCurrentEmoji) {
+        // Removing reaction entirely
+        if (currentUserReaction) {
+          console.log('Deleting existing reaction:', currentUserReaction.id);
+          const { error: deleteError } = await supabase
+            .from('post_reactions')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', currentUserId);
 
-        // If removing reaction completely (not replacing), track cooldown
-        if (isCurrentEmoji) {
+          if (deleteError) {
+            console.error('Delete error:', deleteError);
+            throw deleteError;
+          }
+
           await supabase
             .from('reaction_cooldowns')
             .upsert({
@@ -171,28 +197,53 @@ export const PostReactions = ({ postId, reactions, currentUserId, currentUserNam
               post_id: postId,
               last_removal_at: new Date().toISOString()
             });
-          
-          // Update cooldown state
+
           setIsInCooldown(true);
         }
-      }
+      } else {
+        if (currentUserReaction) {
+          console.log('Replacing existing reaction:', currentUserReaction.id);
+          const { error: deleteExistingError } = await supabase
+            .from('post_reactions')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', currentUserId);
 
-      // If not removing the same emoji, add the new reaction
-      if (!isCurrentEmoji) {
-        console.log('Inserting new reaction:', emoji);
-        const { error: insertError } = await supabase
+          if (deleteExistingError) {
+            console.error('Error removing existing reaction before insert:', deleteExistingError);
+            throw deleteExistingError;
+          }
+        }
+
+        const newReactionPayload = {
+          post_id: postId,
+          user_id: currentUserId,
+          user_name: currentUserName,
+          emoji
+        };
+
+        console.log('Inserting reaction:', newReactionPayload);
+
+        const { data: insertData, error: insertError } = await supabase
           .from('post_reactions')
-          .insert({
-            post_id: postId,
-            user_id: currentUserId,
-            user_name: currentUserName,
-            emoji
-          });
+          .insert(newReactionPayload)
+          .select()
+          .maybeSingle();
 
         if (insertError) {
           console.error('Insert error:', insertError);
           throw insertError;
         }
+
+        if (insertData) {
+          const typedReaction = insertData as PostReaction;
+          setCurrentReactions(prev => [
+            ...prev.filter(r => r.user_id !== currentUserId),
+            typedReaction
+          ]);
+        }
+
+        setIsInCooldown(false);
       }
 
       console.log('Reaction toggle completed successfully');
@@ -200,7 +251,7 @@ export const PostReactions = ({ postId, reactions, currentUserId, currentUserNam
     } catch (error) {
       console.error('Error toggling reaction:', error);
       // Revert to original reactions on error
-      setCurrentReactions(reactions);
+      setCurrentReactions(previousReactions);
       toast({
         title: "Error",
         description: "Failed to update reaction. Please try again.",

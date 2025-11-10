@@ -122,23 +122,24 @@ const StaticDigitalizationTeam = () => {
             </h2>
             <div className="w-16 h-1 bg-white/80 mx-auto mb-4"></div>
           </div>
-          
-          {/* Horizontal connecting line for IT team members */}
-          <div className="flex justify-center mb-8">
-            <div className="relative">
-              <div className="w-[480px] h-0.5 bg-white/40"></div>
-              {/* Connection points positioned to align with center of each team member card */}
-              <div className="absolute top-0 left-[120px] w-0.5 h-8 bg-white/40 -translate-y-0"></div>
-              <div className="absolute top-0 right-[120px] w-0.5 h-8 bg-white/40 -translate-y-0"></div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
-            {itTeamMembers.map((member) => (
-              <div key={member.id} className="w-56">
-                <TeamMemberCard member={member} />
+
+          <div className="flex flex-col items-center">
+            <div className="pointer-events-none w-0.5 h-10 bg-white/40"></div>
+
+            <div className="relative w-full max-w-[640px]">
+              <div className="pointer-events-none absolute top-0 left-0 right-0 h-0.5 bg-white/40"></div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-16 justify-items-center pt-12">
+                {itTeamMembers.map((member, index) => (
+                  <div key={member.id} className="relative flex flex-col items-center">
+                    <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 -translate-y-12 w-0.5 h-12 bg-white/40"></div>
+                    <div className="w-56 relative z-10">
+                      <TeamMemberCard member={member} />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}

@@ -11,8 +11,14 @@ interface TicketManagementProps {
   selectedDepartment: string;
   totalCount: number;
   hasMore: boolean;
-  onLoadMore: () => void;
-  onLoadAll: () => void;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+  onGoToPage: (page: number) => void;
+  onFirstPage: () => void;
+  onPreviousPage: () => void;
+  onNextPage: () => void;
+  onLastPage: () => void;
   loading: boolean;
   showAllTickets: boolean;
   onToggleShowAll: (showAll: boolean) => void;
@@ -39,8 +45,14 @@ const TicketManagement = ({
   selectedDepartment,
   totalCount,
   hasMore,
-  onLoadMore,
-  onLoadAll,
+  currentPage,
+  totalPages,
+  pageSize,
+  onGoToPage,
+  onFirstPage,
+  onPreviousPage,
+  onNextPage,
+  onLastPage,
   loading,
   showAllTickets,
   onToggleShowAll,
@@ -75,11 +87,18 @@ const TicketManagement = ({
       />
 
       <TicketPagination
-        currentCount={tickets.length}
+        pageItemCount={tickets.length}
         totalCount={totalCount}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        onGoToPage={onGoToPage}
         hasMore={hasMore}
         loading={loading}
-        onLoadMore={showAllTickets ? onLoadAll : onLoadMore}
+        onFirstPage={onFirstPage}
+        onPreviousPage={onPreviousPage}
+        onNextPage={onNextPage}
+        onLastPage={onLastPage}
         showAllTickets={showAllTickets}
         onToggleShowAll={onToggleShowAll}
       />

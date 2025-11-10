@@ -18,6 +18,7 @@ import FloatingTeamManagement from './FloatingTeamManagement';
 import PostsSection from '@/components/posts/PostsSection';
 import MobileAdminDashboard from './mobile/MobileAdminDashboard';
 import { useIsMobile } from '@/hooks/use-mobile';
+import TicketChat from './TicketChat';
 
 const AdminDashboardContent = () => {
   const isMobile = useIsMobile();
@@ -34,6 +35,14 @@ const AdminDashboardContent = () => {
     loading,
     hasMore,
     totalCount,
+    totalPages,
+    pageSize,
+    currentPage,
+    goToPage,
+    goToFirstPage,
+    goToPreviousPage,
+    goToNextPage,
+    goToLastPage,
     departmentNotifications,
     userNotifications,
     ticketMessageCounts,
@@ -60,7 +69,6 @@ const AdminDashboardContent = () => {
     handleOpenTicketChat,
     handleCloseTicketChat,
     fetchTickets,
-    loadMore,
     loadAllTickets,
     showAllTickets,
     setShowAllTickets,
@@ -109,7 +117,11 @@ const AdminDashboardContent = () => {
           tickets={tickets}
           stats={stats}
           profileName={profile?.full_name || 'Admin'}
+          profileAvatarUrl={profile?.avatar_url || undefined}
           departmentCode={profile?.department_code}
+          currentAdminId={profile?.id}
+          resolvingTickets={resolvingTickets}
+          canReferTicket={canReferTicket}
           onSignOut={signOut}
           onViewUsers={handleViewUsers}
           onViewDepartmentUsers={handleViewDepartmentUsers}
@@ -121,11 +133,15 @@ const AdminDashboardContent = () => {
           onClearNotifications={clearAllNotifications}
           hasNotifications={totalBrowserNotifications > 0}
           totalNotifications={totalNotifications}
+          escalationCount={escalationCount}
           ticketMessageCounts={ticketMessageCounts}
           departmentNotifications={departmentNotifications}
           onOpenTicketChat={handleOpenTicketChat}
           onAssignTicket={handleAssignTicket}
           onResolveTicket={handleResolveTicket}
+          onReferTicket={(ticket) => {
+            // Refer ticket functionality will be handled by modal in MobileAdminDashboard
+          }}
           onEscalateTicket={handleOpenEscalationModal}
           isBookmarked={isBookmarked}
           onBookmark={addBookmark}
@@ -134,6 +150,8 @@ const AdminDashboardContent = () => {
           onOpenITTeam={() => setShowITTeamManager(true)}
           onOpenBranding={() => setShowBrandingManager(true)}
           onOpenLogo={() => setShowLogoManager(true)}
+          onRefreshTickets={fetchTickets}
+          onShowAllTickets={loadAllTickets}
         />
 
         {/* Modals for Mobile */}
@@ -145,6 +163,17 @@ const AdminDashboardContent = () => {
           onCloseEscalatedTickets={handleCloseEscalatedTickets}
           onTicketResolved={handleTicketResolved}
         />
+
+        {/* Ticket Chat Modal - Global for Mobile */}
+        {selectedTicket && (
+          <TicketChat
+            ticket={selectedTicket}
+            isOpen={!!selectedTicket}
+            onClose={handleCloseTicketChat}
+            onTicketUpdated={fetchTickets}
+            onMessagesViewed={clearNotificationForTicket}
+          />
+        )}
 
         {/* Team Manager Modals */}
         <DigitalizationTeamManager 
@@ -237,10 +266,16 @@ const AdminDashboardContent = () => {
             loading={loading}
             hasMore={hasMore}
             totalCount={totalCount}
-          onLoadMore={loadMore}
-          onLoadAllTickets={loadAllTickets}
-          showAllTickets={showAllTickets}
-          onToggleShowAll={setShowAllTickets}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            onGoToPage={goToPage}
+            onFirstPage={goToFirstPage}
+            onPreviousPage={goToPreviousPage}
+            onNextPage={goToNextPage}
+            onLastPage={goToLastPage}
+            showAllTickets={showAllTickets}
+            onToggleShowAll={setShowAllTickets}
             departmentNotifications={departmentNotifications}
             userNotifications={userNotifications}
             ticketMessageCounts={ticketMessageCounts}
@@ -306,6 +341,17 @@ const AdminDashboardContent = () => {
         onCloseEscalatedTickets={handleCloseEscalatedTickets}
         onTicketResolved={handleTicketResolved}
       />
+
+      {/* Ticket Chat Modal - Global for Desktop */}
+      {selectedTicket && (
+        <TicketChat
+          ticket={selectedTicket}
+          isOpen={!!selectedTicket}
+          onClose={handleCloseTicketChat}
+          onTicketUpdated={fetchTickets}
+        onMessagesViewed={clearNotificationForTicket}
+        />
+      )}
 
       {/* Team Manager Modals */}
       <DigitalizationTeamManager 

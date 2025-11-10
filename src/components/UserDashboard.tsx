@@ -71,6 +71,7 @@ const UserDashboard = () => {
           isOpen={true}
           onClose={handleCloseTicketChat}
           hasNewMessage={ticketMessageCounts.has(selectedTicket.id)}
+          onMessagesViewed={clearNotificationForTicket}
         />
       )}
     </AnimatedContainer>

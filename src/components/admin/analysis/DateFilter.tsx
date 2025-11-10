@@ -7,6 +7,7 @@ import { CalendarIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { AnimatedContainer } from '@/components/ui/animated-container';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DateFilterProps {
   startDate: Date | null;
@@ -25,6 +26,7 @@ const DateFilter = ({
 }: DateFilterProps) => {
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const hasActiveFilter = startDate || endDate;
 
@@ -36,7 +38,7 @@ const DateFilter = ({
           <span>Filter by Date Range</span>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className={`flex flex-wrap items-center gap-3 ${isMobile ? 'w-full' : ''}`}>
           {/* Start Date Picker */}
           <div className="flex flex-col gap-1">
             <span className="text-xs text-blue-600 font-medium">From</span>
@@ -45,7 +47,7 @@ const DateFilter = ({
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[140px] justify-start text-left font-normal border-blue-300",
+                    `${isMobile ? 'w-full' : 'w-[140px]'} justify-start text-left font-normal border-blue-300`,
                     !startDate && "text-muted-foreground"
                   )}
                 >
@@ -79,7 +81,7 @@ const DateFilter = ({
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-[140px] justify-start text-left font-normal border-blue-300",
+                    `${isMobile ? 'w-full' : 'w-[140px]'} justify-start text-left font-normal border-blue-300`,
                     !endDate && "text-muted-foreground"
                   )}
                 >
@@ -111,7 +113,7 @@ const DateFilter = ({
               variant="ghost"
               size="sm"
               onClick={onClearFilter}
-              className="text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+              className={`text-blue-600 hover:text-blue-800 hover:bg-blue-100 ${isMobile ? 'w-full' : ''}`}
             >
               <X className="w-4 h-4 mr-1" />
               Clear Filter
@@ -120,7 +122,7 @@ const DateFilter = ({
         </div>
 
         {hasActiveFilter && (
-          <div className="text-sm text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+          <div className={`text-sm text-blue-600 bg-blue-100 px-3 py-1 rounded-full ${isMobile ? 'w-full text-center' : ''}`}>
             {startDate && endDate ? (
               <>Showing data from {format(startDate, "MMM d, yyyy")} to {format(endDate, "MMM d, yyyy")}</>
             ) : startDate ? (

@@ -18,6 +18,9 @@ const PWASlideNotification = () => {
       return;
     }
 
+    // Always remind users about the PWA option on each visit/refresh
+    setShowPrompt(true);
+
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent Chrome from showing default prompt
@@ -30,11 +33,6 @@ const PWASlideNotification = () => {
       setShowPrompt(true);
       
       console.log('✅ PWA install prompt ready');
-      
-      // Auto-hide after 5 seconds
-      setTimeout(() => {
-        setShowPrompt(false);
-      }, 5000);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -74,33 +72,39 @@ const PWASlideNotification = () => {
     setShowPrompt(false);
   };
 
+  // Auto-hide prompt a few seconds after it becomes visible
+  useEffect(() => {
+    if (!showPrompt) return;
+
+    const timer = window.setTimeout(() => {
+      setShowPrompt(false);
+    }, 6000);
+
+    return () => window.clearTimeout(timer);
+  }, [showPrompt]);
+
   if (!showPrompt) {
     return null;
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[200] animate-in slide-in-from-top duration-500">
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white shadow-2xl border-b-4 border-blue-500">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* Left side - Icon + Message */}
-            <div className="flex items-center gap-4 flex-1">
-              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm shadow-lg">
-                <Download className="h-7 w-7 animate-bounce" />
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-base sm:text-lg">Install QMAZ Helpdesk App</p>
-                <p className="text-xs sm:text-sm text-blue-100 mt-0.5">
-                  Get quick access from your home screen • Works offline • Native app experience
-                </p>
-              </div>
+    <div className="fixed top-4 left-4 z-[200] animate-in slide-in-from-left duration-500">
+      <div className="w-[360px] max-w-[90vw] bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white shadow-2xl border border-blue-400 rounded-2xl overflow-hidden">
+        <div className="px-4 py-4 flex items-start gap-4">
+          <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm shadow-lg">
+            <Download className="h-7 w-7 animate-bounce" />
+          </div>
+          <div className="flex-1 space-y-2">
+            <div>
+              <p className="font-bold text-base">Install the QMAZ Helpdesk PWA</p>
+              <p className="text-xs text-blue-100 mt-0.5">
+                Get quick access from your home screen • Pure PWA (no APK sideloading required)
+              </p>
             </div>
-
-            {/* Right side - Action Buttons */}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleInstallClick}
-                className="px-5 py-2.5 text-sm font-bold bg-white text-blue-700 hover:bg-blue-50 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 whitespace-nowrap"
+                className="px-4 py-2 text-sm font-bold bg-white text-blue-700 hover:bg-blue-50 rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 whitespace-nowrap"
               >
                 Install Now
               </button>
@@ -114,19 +118,17 @@ const PWASlideNotification = () => {
             </div>
           </div>
         </div>
+        <div className="h-1 bg-blue-900">
+          <div
+            className="h-full bg-gradient-to-r from-white via-blue-200 to-white"
+            style={{
+              width: '100%',
+              animation: 'shrink 5s linear forwards'
+            }}
+          />
+        </div>
       </div>
-      
-      {/* Auto-hide progress bar (5 seconds) */}
-      <div className="h-1 bg-blue-900">
-        <div 
-          className="h-full bg-gradient-to-r from-white via-blue-200 to-white"
-          style={{
-            width: '100%',
-            animation: 'shrink 5s linear forwards'
-          }} 
-        />
-      </div>
-      
+
       <style>{`
         @keyframes shrink {
           from { width: 100%; }

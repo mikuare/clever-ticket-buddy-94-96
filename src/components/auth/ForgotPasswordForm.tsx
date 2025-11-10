@@ -86,7 +86,7 @@ const ForgotPasswordForm = ({ onBackToLogin }: ForgotPasswordFormProps) => {
         
         <div className={`text-center ${isMobile ? 'mt-6' : 'mt-8'} ${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
           <p>QMAZ HOLDING HELP DESK SYSTEM</p>
-          <p>Version 1.0</p>
+          <p>Version 1.2</p>
           <p>© Digital System Team 2025</p>
         </div>
       </div>
@@ -145,7 +145,7 @@ const ForgotPasswordForm = ({ onBackToLogin }: ForgotPasswordFormProps) => {
       
       <div className={`text-center ${isMobile ? 'mt-6' : 'mt-8'} ${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
         <p>QMAZ HOLDING HELP DESK SYSTEM</p>
-        <p>Version 1.0</p>
+        <p>Version 1.2</p>
         <p>© Digital System Team 2025</p>
       </div>
     </div>

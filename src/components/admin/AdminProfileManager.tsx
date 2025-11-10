@@ -11,7 +11,7 @@ import { Upload, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const AdminProfileManager = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -53,15 +53,20 @@ const AdminProfileManager = () => {
 
       console.log('Image uploaded, public URL:', publicUrl);
 
+      const cacheBustedUrl = publicUrl.includes('?')
+        ? `${publicUrl}&v=${Date.now()}`
+        : `${publicUrl}?v=${Date.now()}`;
+
       // Update profile with image URL
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: cacheBustedUrl })
         .eq('id', user.id);
 
       if (updateError) throw updateError;
 
-      setProfileData(prev => ({ ...prev, avatar_url: publicUrl }));
+      setProfileData(prev => ({ ...prev, avatar_url: cacheBustedUrl }));
+      await refreshProfile();
       toast({
         title: "Profile image updated",
         description: "Your profile image has been successfully updated."
@@ -83,13 +88,26 @@ const AdminProfileManager = () => {
 
     setIsLoading(true);
     try {
+      const trimmedName = profileData.full_name.trim();
+
+      if (!trimmedName) {
+        toast({
+          title: "Full name required",
+          description: "Please enter your full name before saving.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: profileData.full_name })
+        .update({ full_name: trimmedName })
         .eq('id', user.id);
 
       if (error) throw error;
-      
+
+      setProfileData(prev => ({ ...prev, full_name: trimmedName }));
+      await refreshProfile();
       toast({
         title: "Profile updated",
         description: "Your profile has been successfully updated."
@@ -135,7 +153,7 @@ const AdminProfileManager = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="w-20 h-20">
-                  <AvatarImage src={profileData.avatar_url} alt="Profile" />
+                  <AvatarImage key={profileData.avatar_url} src={profileData.avatar_url} alt="Profile" />
                   <AvatarFallback>
                     {profile?.full_name?.split(' ').map(n => n[0]).join('') || 'A'}
                   </AvatarFallback>

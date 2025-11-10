@@ -28,7 +28,7 @@ interface TicketCardProps {
   onAssignTicket: (ticketId: string) => void;
   onEscalateTicket: (ticket: Ticket) => void;
   onTicketsUpdate?: () => void;
-  clearNotificationForTicket?: (ticketId: string) => void;
+  clearNotificationForTicket?: (ticketId: string) => Promise<void> | void;
   // Bookmark functionality
   isBookmarked?: boolean;
   bookmarkInfo?: {
@@ -78,6 +78,7 @@ const TicketCard = ({
   };
 
   const handleOpenChat = (ticket: Ticket) => {
+    setShowDetailsModal(false);
     onViewDetails(ticket);
   };
 

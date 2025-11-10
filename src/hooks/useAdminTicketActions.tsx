@@ -195,21 +195,31 @@ export const useAdminTicketActions = (profile: Profile | null, fetchTickets: () 
     }
   };
 
-  const handleOpenTicketChat = async (ticket: Ticket) => {
+  const handleOpenTicketChat = (ticket: Ticket) => {
     // Enable referral for tickets assigned to current admin that are in progress (not resolved)
     if (ticket.assigned_admin_id === profile?.id && ticket.status === 'In Progress') {
-      await enableReferralForTicket(ticket.id);
+      enableReferralForTicket(ticket.id).catch(error => {
+        console.error('Failed to enable referral for ticket', ticket.id, error);
+      });
     }
     setSelectedTicket(ticket);
   };
 
   // Enable referrals for all tickets assigned to current admin that are in progress (not resolved)
   const enableReferralsForAssignedTickets = async (tickets: Ticket[]) => {
-    for (const ticket of tickets) {
-      if (ticket.assigned_admin_id === profile?.id && ticket.status === 'In Progress') {
-        await enableReferralForTicket(ticket.id);
-      }
-    }
+    const inProgressTickets = tickets.filter(
+      ticket => ticket.assigned_admin_id === profile?.id && ticket.status === 'In Progress'
+    );
+
+    if (inProgressTickets.length === 0) return;
+
+    await Promise.all(
+      inProgressTickets.map(ticket =>
+        enableReferralForTicket(ticket.id).catch(error => {
+          console.error('Failed to enable referral for ticket', ticket.id, error);
+        })
+      )
+    );
   };
 
   const handleCloseTicketChat = () => {

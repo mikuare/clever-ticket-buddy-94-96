@@ -10,6 +10,7 @@ import LoadingSpinner from './LoadingSpinner';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useAuth } from '@/hooks/useAuth';
 import AccessDenied from './AccessDenied';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TicketAnalysisData {
   classificationStats: Array<{
@@ -46,6 +47,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 const TicketAnalysisView = () => {
   const { isAdmin, isVerifyingAdmin } = useAdminAuth();
   const { signOut } = useAuth();
+  const isMobile = useIsMobile();
   const [analysisData, setAnalysisData] = useState<TicketAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -327,16 +329,18 @@ const TicketAnalysisView = () => {
     );
   }
 
+  const chartHeight = isMobile ? 220 : 300;
+
   return (
-    <AnimatedContainer variant="content" className="space-y-6">
-      <div className="flex items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="h-8 w-8 text-primary" />
-          <div>
-            <AnimatedText as="h1" variant="title" className="text-3xl font-bold text-foreground">
-              Ticket Analysis Dashboard
+    <AnimatedContainer variant={isMobile ? 'content' : 'content'} className={isMobile ? 'space-y-4 pb-8' : 'space-y-6'}>
+      <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between gap-3'} mb-4`}>
+        <div className={`flex items-center gap-3 ${isMobile ? 'w-full' : ''}`}>
+          <BarChart3 className={isMobile ? "h-6 w-6 text-primary" : "h-8 w-8 text-primary"} />
+          <div className="flex-1">
+            <AnimatedText as="h1" variant="title" className={isMobile ? "text-xl font-bold text-foreground" : "text-3xl font-bold text-foreground"}>
+              {isMobile ? "Ticket Analysis" : "Ticket Analysis Dashboard"}
             </AnimatedText>
-            <AnimatedText variant="subtitle" className="text-muted-foreground">
+            <AnimatedText variant="subtitle" className={isMobile ? "text-xs text-muted-foreground" : "text-muted-foreground"}>
               Comprehensive analysis of tickets by classification and category
             </AnimatedText>
           </div>
@@ -344,58 +348,59 @@ const TicketAnalysisView = () => {
         <Button 
           onClick={exportToCSV}
           variant="outline"
-          className="flex items-center gap-2"
+          size={isMobile ? "sm" : "default"}
+          className={`flex items-center gap-2 ${isMobile ? 'w-full' : ''}`}
         >
           <Download className="h-4 w-4" />
-          Extract Data
+          Export Data
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className={`grid grid-cols-1 ${isMobile ? 'sm:grid-cols-2' : 'md:grid-cols-4'} gap-3 md:gap-4 mb-4`}>
         <Card>
-          <CardContent className="p-6">
+          <CardContent className={isMobile ? 'p-4' : 'p-6'}>
             <div className="flex items-center gap-2">
-              <Ticket className="h-5 w-5 text-blue-500" />
+              <Ticket className={isMobile ? 'h-4 w-4 text-blue-500' : 'h-5 w-5 text-blue-500'} />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Tickets</p>
-                <p className="text-2xl font-bold">{analysisData.totalTickets}</p>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-muted-foreground`}>Total Tickets</p>
+                <p className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>{analysisData.totalTickets}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-6">
+          <CardContent className={isMobile ? 'p-4' : 'p-6'}>
             <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-green-500" />
+              <Filter className={isMobile ? 'h-4 w-4 text-green-500' : 'h-5 w-5 text-green-500'} />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Classifications</p>
-                <p className="text-2xl font-bold">{analysisData.classificationStats.length}</p>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-muted-foreground`}>Classifications</p>
+                <p className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>{analysisData.classificationStats.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-6">
+          <CardContent className={isMobile ? 'p-4' : 'p-6'}>
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-orange-500" />
+              <TrendingUp className={isMobile ? 'h-4 w-4 text-orange-500' : 'h-5 w-5 text-orange-500'} />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Categories</p>
-                <p className="text-2xl font-bold">{analysisData.categoryStats.length}</p>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-muted-foreground`}>Categories</p>
+                <p className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>{analysisData.categoryStats.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-6">
+          <CardContent className={isMobile ? 'p-4' : 'p-6'}>
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-purple-500" />
+              <BarChart3 className={isMobile ? 'h-4 w-4 text-purple-500' : 'h-5 w-5 text-purple-500'} />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Modules</p>
-                <p className="text-2xl font-bold">{analysisData.moduleStats.length}</p>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-muted-foreground`}>Modules</p>
+                <p className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>{analysisData.moduleStats.length}</p>
               </div>
             </div>
           </CardContent>
@@ -403,14 +408,14 @@ const TicketAnalysisView = () => {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'lg:grid-cols-2 xl:grid-cols-3 gap-6'}`}>
         {/* Classification Distribution */}
         <Card>
           <CardHeader>
             <CardTitle>Classification Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <PieChart>
                 <Pie
                   data={analysisData.classificationStats}
@@ -436,7 +441,7 @@ const TicketAnalysisView = () => {
             <CardTitle>Category Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart data={analysisData.categoryStats.slice(0, 8)}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
@@ -455,7 +460,7 @@ const TicketAnalysisView = () => {
             <CardTitle>Acumatica Module Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <PieChart>
                 <Pie
                   data={analysisData.moduleStats}
@@ -481,7 +486,7 @@ const TicketAnalysisView = () => {
             <CardTitle>Status Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart data={analysisData.statusDistribution}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="status" />
@@ -500,7 +505,7 @@ const TicketAnalysisView = () => {
             <CardTitle>Department Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <PieChart>
                 <Pie
                   data={analysisData.departmentStats}
@@ -522,14 +527,14 @@ const TicketAnalysisView = () => {
       </div>
 
       {/* Detailed Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'lg:grid-cols-3 gap-6'}`}>
         {/* Classification Details */}
         <Card>
           <CardHeader>
             <CardTitle>Classification Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
+            <div className={`space-y-2 ${isMobile ? 'max-h-60' : 'max-h-80'} overflow-y-auto`}>
               {analysisData.classificationStats.map((item, index) => (
                 <div key={item.name} className="flex justify-between items-center p-2 rounded hover:bg-muted/50">
                   <div className="flex items-center gap-2">
@@ -555,7 +560,7 @@ const TicketAnalysisView = () => {
             <CardTitle>Category Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
+            <div className={`space-y-2 ${isMobile ? 'max-h-60' : 'max-h-80'} overflow-y-auto`}>
               {analysisData.categoryStats.map((item, index) => (
                 <div key={item.name} className="flex justify-between items-center p-2 rounded hover:bg-muted/50">
                   <div>
@@ -578,7 +583,7 @@ const TicketAnalysisView = () => {
             <CardTitle>Acumatica Module Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
+            <div className={`space-y-2 ${isMobile ? 'max-h-60' : 'max-h-80'} overflow-y-auto`}>
               {analysisData.moduleStats.map((item, index) => (
                 <div key={item.name} className="flex justify-between items-center p-2 rounded hover:bg-muted/50">
                   <div className="flex items-center gap-2">

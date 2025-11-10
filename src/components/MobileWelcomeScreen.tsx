@@ -8,9 +8,17 @@ interface MobileWelcomeScreenProps {
 const MobileWelcomeScreen = ({ onComplete }: MobileWelcomeScreenProps) => {
   const { logos, loading: logosLoading, insertDefaultLogo } = useBrandLogos();
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; delay: number }>>([]);
+  const defaultLogo = '/placeholder.svg';
+  const [logoUrl, setLogoUrl] = useState<string>(defaultLogo);
   
-  // Use logo from brand_logos table or fallback
-  const logoUrl = logos.length > 0 ? logos[0].image_url : '/lovable-uploads/cb6eca2d-a768-478b-af7f-1c3fba8f1b6c.png';
+  // Update logo when data changes
+  useEffect(() => {
+    if (!logosLoading && logos.length > 0) {
+      setLogoUrl(logos[0].image_url);
+    } else if (!logosLoading && logos.length === 0) {
+      setLogoUrl(defaultLogo);
+    }
+  }, [logos, logosLoading]);
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -93,8 +101,8 @@ const MobileWelcomeScreen = ({ onComplete }: MobileWelcomeScreenProps) => {
               src={logoUrl} 
               alt="QMAZ Holdings Logo" 
               className="w-full h-full object-contain" 
-              onError={(e) => {
-                console.log('Logo failed to load:', e.currentTarget.src);
+              onError={() => {
+                setLogoUrl(defaultLogo);
               }} 
             />
           </div>
@@ -117,9 +125,21 @@ const MobileWelcomeScreen = ({ onComplete }: MobileWelcomeScreenProps) => {
         </p>
         
         <div className="flex justify-center pt-8 animate-fade-in" style={{ animationDelay: '1s' }}>
-          <div className="relative">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <div className="absolute inset-0 animate-ping rounded-full h-8 w-8 border border-primary/30"></div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative h-16 w-16">
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20"></div>
+              <div className="absolute inset-1 rounded-full border-t-4 border-primary border-transparent animate-[spin_2.2s_linear_infinite]"></div>
+              <div
+                className="absolute inset-2 rounded-full border-b-4 border-secondary border-transparent animate-[spin_3.4s_linear_infinite] opacity-90"
+                style={{ animationDirection: 'reverse' }}
+              ></div>
+              <div className="absolute inset-4 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="h-2.5 w-2.5 rounded-full bg-primary"></div>
+              </div>
+            </div>
+            <div className="text-xs font-mono tracking-[0.35em] uppercase text-muted-foreground opacity-80">
+              Loading workspace
+            </div>
           </div>
         </div>
       </div>

@@ -12,6 +12,7 @@ import { AnimatedContainer } from '@/components/ui/animated-container';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { useTeamFilter } from '@/hooks/useTeamFilter';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { AdminAnalytics, AdminSummaryStats } from '@/types/adminAnalytics';
 
 interface AdminAnalysisViewProps {
@@ -28,6 +29,7 @@ const AdminAnalysisView = ({
   const { isAdmin, isVerifyingAdmin } = useAdminAuth();
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const isMobile = useIsMobile();
 
   // Use the hook with date filtering - this will override any props passed
   const { 
@@ -98,7 +100,7 @@ const AdminAnalysisView = ({
   }
 
   return (
-    <AnimatedContainer variant="page" className="space-y-6">
+    <AnimatedContainer variant={isMobile ? 'content' : 'page'} className={isMobile ? 'space-y-4' : 'space-y-6'}>
       <AnalysisHeader />
       
       <DateFilter

@@ -19,9 +19,11 @@ interface OptimizedTicketsState {
   hasMore: boolean;
   currentPage: number;
   totalCount: number;
+  totalPages: number;
+  pageSize: number;
 }
 
-const TICKETS_PER_PAGE = 50; // Server-side pagination
+const TICKETS_PER_PAGE = 10; // Server-side pagination
 
 // Client-side cache for stats to avoid redundant queries
 const statsCache = {
@@ -38,7 +40,9 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
     loading: true,
     hasMore: true,
     currentPage: 0,
-    totalCount: 0
+    totalCount: 0,
+    totalPages: 1,
+    pageSize: TICKETS_PER_PAGE
   });
   
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -51,12 +55,13 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
   }, []);
 
   // Optimized query with JOIN to get tickets with user profiles in one request
-  const fetchTicketsOptimized = useCallback(async (page = 0, reset = true) => {
+  const fetchTicketsOptimized = useCallback(async (page = 0) => {
+    setState(prev => ({ ...prev, loading: true }));
+
     try {
       const offset = page * TICKETS_PER_PAGE;
-      
-      // Fetch tickets immediately without waiting for count
-      const { data: ticketsData, error: ticketsError } = await supabase
+
+      const { data: ticketsData, count, error: ticketsError } = await supabase
         .from('tickets')
         .select(`
           id,
@@ -77,7 +82,7 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
           admin_resolved_at,
           user_closed_at,
           reopen_count
-        `)
+        `, { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + TICKETS_PER_PAGE - 1);
 
@@ -85,45 +90,31 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
         throw ticketsError;
       }
 
-      // Get count in background (don't wait for it)
-      let totalCount = state.totalCount;
-      if (page === 0) {
-        supabase
-          .from('tickets')
-          .select('*', { count: 'exact', head: true })
-          .then(({ count }) => {
-            if (count !== null && count !== totalCount) {
-              setState(prev => ({ ...prev, totalCount: count }));
-            }
-          });
-      }
-
-      // Process reopened tickets (no database query needed)
+      // Process reopened tickets (no additional database query needed)
       const reopenedTicketIds = new Set(
-        ticketsData?.filter(t => 
-          t.reopen_count > 0 && 
+        ticketsData?.filter(t =>
+          t.reopen_count > 0 &&
           t.assigned_admin_id !== null &&
           t.status !== 'Resolved' &&
           t.status !== 'Closed'
         ).map(t => t.id) || []
       );
 
-      // Get unique user IDs and fetch profiles in background
+      // Fetch related profiles for display
       const userIds = Array.from(new Set(ticketsData?.map(ticket => ticket.user_id).filter(Boolean) || []));
       let profilesMap = new Map();
-      
+
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, full_name, email')
           .in('id', userIds);
-        
+
         profilesData?.forEach(profile => {
           profilesMap.set(profile.id, profile);
         });
       }
 
-      // Transform to match Ticket interface and mark reopened tickets
       const transformedTickets: Ticket[] = (ticketsData || []).map(ticket => {
         const userProfile = profilesMap.get(ticket.user_id);
         return {
@@ -136,26 +127,34 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
         };
       });
 
-      // Sort tickets to prioritize reopened ones at the top
       transformedTickets.sort((a, b) => {
         if (a.isReopened && !b.isReopened) return -1;
         if (!a.isReopened && b.isReopened) return 1;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
 
-      // Update state with new tickets immediately
-      setState(prev => ({
-        ...prev,
-        tickets: reset ? transformedTickets : [...prev.tickets, ...transformedTickets],
-        hasMore: transformedTickets.length === TICKETS_PER_PAGE,
-        currentPage: page,
-        loading: false,
-        totalCount: totalCount || prev.totalCount
-      }));
+      setState(prev => {
+        const totalCountValue = count ?? prev.totalCount;
+        const totalPages = totalCountValue > 0 ? Math.max(1, Math.ceil(totalCountValue / TICKETS_PER_PAGE)) : 1;
+        const safePage = Math.min(Math.max(page, 0), totalPages - 1);
+        const hasMore = safePage < totalPages - 1;
+
+        return {
+          ...prev,
+          tickets: transformedTickets,
+          hasMore,
+          currentPage: safePage,
+          totalCount: totalCountValue,
+          totalPages,
+          pageSize: TICKETS_PER_PAGE,
+          loading: false
+        };
+      });
 
       return transformedTickets;
     } catch (error) {
       console.error('Error in optimized ticket fetch:', error);
+      setState(prev => ({ ...prev, loading: false }));
       throw error;
     }
   }, []);
@@ -228,28 +227,60 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
     }
   }, []);
 
-  // Load more tickets (pagination)
-  const loadMore = useCallback(async () => {
-    setState(prev => {
-      if (!prev.hasMore || prev.loading) return prev;
-      
-      const nextPage = prev.currentPage + 1;
-      console.log(`Loading more tickets - Page: ${nextPage}`);
-      
-      // Start loading
-      fetchTicketsOptimized(nextPage, false).catch(error => {
-        console.error('Failed to load more tickets:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load more tickets. Please try again.",
-          variant: "destructive"
-        });
-        setState(curr => ({ ...curr, loading: false }));
-      });
-      
-      return { ...prev, loading: true };
+  const handleFetchError = useCallback((error: unknown) => {
+    console.error('Ticket pagination error:', error);
+    toast({
+      title: 'Error',
+      description: 'Unable to load tickets. Please try again.',
+      variant: 'destructive'
     });
-  }, [fetchTicketsOptimized, toast]);
+  }, [toast]);
+
+  const goToPage = useCallback(async (page: number) => {
+    try {
+      const targetPage = Number.isFinite(page) ? Math.max(0, Math.floor(page)) : 0;
+      await fetchTicketsOptimized(targetPage);
+    } catch (error) {
+      handleFetchError(error);
+    }
+  }, [fetchTicketsOptimized, handleFetchError]);
+
+  const goToFirstPage = useCallback(async () => {
+    if (state.currentPage === 0) return;
+    try {
+      await fetchTicketsOptimized(0);
+    } catch (error) {
+      handleFetchError(error);
+    }
+  }, [fetchTicketsOptimized, handleFetchError, state.currentPage]);
+
+  const goToPreviousPage = useCallback(async () => {
+    if (state.currentPage <= 0) return;
+    try {
+      await fetchTicketsOptimized(state.currentPage - 1);
+    } catch (error) {
+      handleFetchError(error);
+    }
+  }, [fetchTicketsOptimized, handleFetchError, state.currentPage]);
+
+  const goToNextPage = useCallback(async () => {
+    if (state.currentPage >= state.totalPages - 1) return;
+    try {
+      await fetchTicketsOptimized(state.currentPage + 1);
+    } catch (error) {
+      handleFetchError(error);
+    }
+  }, [fetchTicketsOptimized, handleFetchError, state.currentPage, state.totalPages]);
+
+  const goToLastPage = useCallback(async () => {
+    const lastPage = Math.max(state.totalPages - 1, 0);
+    if (state.currentPage >= lastPage) return;
+    try {
+      await fetchTicketsOptimized(lastPage);
+    } catch (error) {
+      handleFetchError(error);
+    }
+  }, [fetchTicketsOptimized, handleFetchError, state.currentPage, state.totalPages]);
 
   // Main data loading function with retry and concurrent execution
   const loadData = useCallback(async (reset = true) => {
@@ -261,7 +292,7 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
       await withRetry(async () => {
         if (reset) {
           // Load tickets first (priority), stats in background
-          await fetchTicketsOptimized(0, true);
+          await fetchTicketsOptimized(0);
           fetchTicketStats(); // Don't wait for stats
         }
       });
@@ -332,19 +363,8 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
   const loadAllTickets = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
-      
-      // Calculate how many tickets we need to load
-      const remainingTickets = state.totalCount - state.tickets.length;
-      if (remainingTickets <= 0) {
-        setState(prev => ({ ...prev, loading: false }));
-        return;
-      }
 
-      console.log(`Loading all remaining ${remainingTickets} tickets...`);
-      
-      // Get all remaining tickets in one query
-      const offset = state.tickets.length;
-      const { data: ticketsData, error: ticketsError } = await supabase
+      const { data: ticketsData, count, error: ticketsError } = await supabase
         .from('tickets')
         .select(`
           id,
@@ -365,46 +385,36 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
           admin_resolved_at,
           user_closed_at,
           reopen_count
-        `)
-        .order('created_at', { ascending: false })
-        .range(offset, state.totalCount - 1);
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false });
 
       if (ticketsError) {
-        console.error('Error loading all tickets:', ticketsError);
         throw ticketsError;
       }
 
-      // Get unique user IDs for this batch
       const userIds = Array.from(new Set(ticketsData?.map(ticket => ticket.user_id).filter(Boolean) || []));
-      
       let profilesMap = new Map();
+
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, full_name, email')
           .in('id', userIds);
-        
+
         profilesData?.forEach(profile => {
           profilesMap.set(profile.id, profile);
         });
       }
 
-      // Get reopened ticket IDs
-      const ticketIds = ticketsData?.map(t => t.id) || [];
-      let reopenedTicketIds = new Set<string>();
-      
-      if (ticketIds.length > 0) {
-        reopenedTicketIds = new Set(
-          ticketsData?.filter(t => 
-            t.reopen_count > 0 && 
-            t.assigned_admin_id !== null &&
-            t.status !== 'Resolved' &&
-            t.status !== 'Closed'
-          ).map(t => t.id) || []
-        );
-      }
+      const reopenedTicketIds = new Set(
+        ticketsData?.filter(t =>
+          t.reopen_count > 0 &&
+          t.assigned_admin_id !== null &&
+          t.status !== 'Resolved' &&
+          t.status !== 'Closed'
+        ).map(t => t.id) || []
+      );
 
-      // Transform tickets
       const transformedTickets: Ticket[] = (ticketsData || []).map(ticket => {
         const userProfile = profilesMap.get(ticket.user_id);
         return {
@@ -417,33 +427,35 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
         };
       });
 
-      // Sort tickets to prioritize reopened ones
       transformedTickets.sort((a, b) => {
         if (a.isReopened && !b.isReopened) return -1;
         if (!a.isReopened && b.isReopened) return 1;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
 
-      console.log(`Loaded ${transformedTickets.length} additional tickets`);
-      
-      // Update state with all tickets
+      const totalCountValue = count ?? transformedTickets.length;
+      const totalPages = totalCountValue > 0 ? Math.max(1, Math.ceil(totalCountValue / TICKETS_PER_PAGE)) : 1;
+
       setState(prev => ({
         ...prev,
-        tickets: [...prev.tickets, ...transformedTickets],
+        tickets: transformedTickets,
         hasMore: false,
-        loading: false
+        loading: false,
+        totalCount: totalCountValue,
+        totalPages,
+        currentPage: 0,
+        pageSize: TICKETS_PER_PAGE
       }));
-
     } catch (error) {
       console.error('Failed to load all tickets:', error);
       toast({
-        title: "Error",
-        description: "Failed to load all tickets. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to load all tickets. Please try again.',
+        variant: 'destructive'
       });
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, [state.tickets.length, state.totalCount, toast]);
+  }, [toast]);
 
   return {
     tickets: state.tickets,
@@ -452,7 +464,13 @@ export const useOptimizedTicketsManagement = (isAdmin: boolean, isVerifyingAdmin
     hasMore: state.hasMore,
     currentPage: state.currentPage,
     totalCount: state.totalCount,
-    loadMore,
+    totalPages: state.totalPages,
+    pageSize: state.pageSize,
+    goToPage,
+    goToFirstPage,
+    goToPreviousPage,
+    goToNextPage,
+    goToLastPage,
     loadAllTickets,
     refresh,
     updateTicket,

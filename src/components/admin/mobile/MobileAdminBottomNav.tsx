@@ -1,25 +1,27 @@
-import { Home, TicketIcon, Bell, TrendingUp, Menu } from 'lucide-react';
+import { Home, TicketIcon, Bell, Zap, TrendingUp, Menu } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-export type MobileAdminTab = 'dashboard' | 'tickets' | 'notifications' | 'analytics' | 'more';
+export type MobileAdminTab = 'dashboard' | 'tickets' | 'notifications' | 'escalations' | 'analytics' | 'more';
 
 interface MobileAdminBottomNavProps {
   activeTab: MobileAdminTab;
   onTabChange: (tab: MobileAdminTab) => void;
-  notificationCount?: number;
   ticketCount?: number;
+  alertsCount?: number;
+  escalationCount?: number;
 }
 
 const MobileAdminBottomNav = ({
   activeTab,
   onTabChange,
-  notificationCount = 0,
-  ticketCount = 0
+  ticketCount = 0,
+  alertsCount = 0,
+  escalationCount = 0
 }: MobileAdminBottomNavProps) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border shadow-lg md:hidden">
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-6 h-16">
         <NavItem
           icon={<Home className="w-5 h-5" />}
           label="Dashboard"
@@ -38,7 +40,14 @@ const MobileAdminBottomNav = ({
           label="Alerts"
           active={activeTab === 'notifications'}
           onClick={() => onTabChange('notifications')}
-          badge={notificationCount > 0 ? notificationCount : undefined}
+          badge={alertsCount > 0 ? alertsCount : undefined}
+        />
+        <NavItem
+          icon={<Zap className="w-5 h-5" />}
+          label="Escalations"
+          active={activeTab === 'escalations'}
+          onClick={() => onTabChange('escalations')}
+          badge={escalationCount > 0 ? escalationCount : undefined}
         />
         <NavItem
           icon={<TrendingUp className="w-5 h-5" />}

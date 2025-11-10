@@ -18,11 +18,17 @@ export const useReferralActions = ({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
+  const isDisabled = !adminId;
+
   const handleReferralAction = async (
     referralId: string, 
     action: 'accepted' | 'declined', 
     selectedNotification: ReferralNotification
   ) => {
+    if (isDisabled) {
+      console.warn('Referral action attempted without a valid admin ID');
+      return;
+    }
     setLoading(true);
     try {
       // Get current admin's profile for proper logging with fresh data

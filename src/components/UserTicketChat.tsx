@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useTicketChat } from '@/hooks/useTicketChat';
 import MessagesList from '@/components/admin/chat/MessagesList';
 import MessageInput from '@/components/admin/chat/MessageInput';
 import UserTicketDetailsView from '@/components/user/tickets/UserTicketDetailsView';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Ticket } from '@/hooks/useUserTickets';
 import type { TicketMessage } from '@/types/admin';
 
@@ -15,9 +16,11 @@ interface UserTicketChatProps {
   isOpen: boolean;
   onClose: () => void;
   hasNewMessage?: boolean;
+  onMessagesViewed?: (ticketId: string) => Promise<void> | void;
 }
 
-const UserTicketChat = ({ ticket, isOpen, onClose, hasNewMessage }: UserTicketChatProps) => {
+const UserTicketChat = ({ ticket, isOpen, onClose, hasNewMessage, onMessagesViewed }: UserTicketChatProps) => {
+  const isMobile = useIsMobile();
   const { 
     messages, 
     loading, 
@@ -31,6 +34,7 @@ const UserTicketChat = ({ ticket, isOpen, onClose, hasNewMessage }: UserTicketCh
 
   const [replyingTo, setReplyingTo] = useState<TicketMessage | null>(null);
   const [editingMessage, setEditingMessage] = useState<TicketMessage | null>(null);
+  const lastAcknowledgedMessageId = useRef<string | null>(null);
 
   // Check if chat should be disabled (ticket is resolved and closed)
   const isChatDisabled = ticket.status === 'Resolved' || ticket.status === 'Closed';
@@ -95,9 +99,35 @@ const UserTicketChat = ({ ticket, isOpen, onClose, hasNewMessage }: UserTicketCh
     };
   };
 
+  // Reset acknowledgement when modal closes to ensure future openings re-sync
+  useEffect(() => {
+    if (!isOpen) {
+      lastAcknowledgedMessageId.current = null;
+    }
+  }, [isOpen]);
+
+  // Mark messages as viewed when modal opens or new messages arrive
+  const latestMessageId = messages.length > 0 ? messages[messages.length - 1].id : '__none__';
+
+  useEffect(() => {
+    if (!isOpen || !onMessagesViewed) {
+      return;
+    }
+
+    if (lastAcknowledgedMessageId.current === latestMessageId) {
+      return;
+    }
+
+    lastAcknowledgedMessageId.current = latestMessageId;
+
+    Promise.resolve(onMessagesViewed(ticket.id)).catch((error: unknown) => {
+      console.error('Failed to mark messages as viewed for ticket', ticket.id, error);
+    });
+  }, [isOpen, latestMessageId, onMessagesViewed, ticket.id]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] p-0 flex flex-col overflow-hidden md:max-w-6xl max-w-[95vw]">
+      <DialogContent className="max-w-6xl w-full max-w-[95vw] md:max-w-6xl h-[90vh] md:h-[85vh] p-0 flex flex-col overflow-hidden">
         <DialogHeader className="p-4 md:p-6 pb-2 md:pb-0 flex-shrink-0 border-b">
           <DialogTitle className="flex items-center gap-2 text-sm md:text-base">
             <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />
@@ -153,7 +183,16 @@ const UserTicketChat = ({ ticket, isOpen, onClose, hasNewMessage }: UserTicketCh
             {/* Messages Area - Optimized for mobile */}
             <div className="flex-1 min-h-0 bg-background">
               <ScrollArea className="h-full">
-                <div className="p-2 md:p-6">
+                <div className="p-2 md:p-6 space-y-4">
+                  {isMobile && (
+                    <div className="md:hidden rounded-lg border border-border bg-card p-3 shadow-sm">
+                      <UserTicketDetailsView
+                        ticket={ticket}
+                        getStatusColor={getStatusColor}
+                        getTicketMetadata={getTicketMetadata}
+                      />
+                    </div>
+                  )}
                   <MessagesList 
                     messages={messages} 
                     currentUserId={currentUserId}
@@ -167,7 +206,7 @@ const UserTicketChat = ({ ticket, isOpen, onClose, hasNewMessage }: UserTicketCh
             </div>
             
             {/* Input Area - Compact on mobile with proper scrolling */}
-            <div className="border-t p-2 md:p-4 flex-shrink-0 bg-background max-h-[40vh] overflow-y-auto">
+            <div className="border-t p-2 md:p-4 flex-shrink-0 bg-background">
               {!isChatDisabled ? (
                 <MessageInput 
                   onSendMessage={sendMessage}

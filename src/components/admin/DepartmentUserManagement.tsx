@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Users, Building2, Mail, ArrowLeft, Ban, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSuspension } from '@/hooks/useSuspension';
@@ -22,6 +23,7 @@ interface UserProfile {
   suspended_by: string | null;
   suspension_reason: string | null;
   created_at: string;
+  avatar_url: string | null;
 }
 
 interface DepartmentStats {
@@ -63,7 +65,7 @@ const DepartmentUserManagement = ({ departments }: DepartmentUserManagementProps
       
       const { data: users, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, department_code, is_admin, is_suspended, suspended_at, suspended_by, suspension_reason, created_at')
+        .select('id, full_name, email, department_code, is_admin, is_suspended, suspended_at, suspended_by, suspension_reason, created_at, avatar_url')
         .order('department_code')
         .order('full_name');
 
@@ -178,6 +180,14 @@ const DepartmentUserManagement = ({ departments }: DepartmentUserManagementProps
     return new Date(dateString).toLocaleDateString();
   };
 
+  const getInitials = (name: string) =>
+    name
+      .split(' ')
+      .filter(Boolean)
+      .map(part => part[0]?.toUpperCase() || '')
+      .join('')
+      .slice(0, 2);
+
   // Filter users based on suspension status
   const getFilteredUsers = (users: UserProfile[]) => {
     switch (filterSuspended) {
@@ -269,45 +279,53 @@ const DepartmentUserManagement = ({ departments }: DepartmentUserManagementProps
                           : 'bg-card hover:bg-muted/50'
                       }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-medium text-gray-900 truncate">
-                              {user.full_name}
-                            </h3>
-                            <div className="flex gap-1">
-                              {user.is_admin && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Admin
-                                </Badge>
-                              )}
-                              {user.is_suspended && (
-                                <Badge variant="destructive" className="text-xs flex items-center gap-1">
-                                  <Ban className="w-3 h-3" />
-                                  Suspended
-                                </Badge>
-                              )}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <Avatar className={`w-12 h-12 border-2 ${user.is_suspended ? 'border-red-200' : 'border-border'}`}>
+                            <AvatarImage src={user.avatar_url ?? undefined} alt={user.full_name} />
+                            <AvatarFallback className={`${user.is_suspended ? 'bg-red-100 text-red-700' : 'bg-muted text-foreground'} font-medium`}>
+                              {getInitials(user.full_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-medium text-gray-900 truncate">
+                                {user.full_name}
+                              </h3>
+                              <div className="flex gap-1">
+                                {user.is_admin && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Admin
+                                  </Badge>
+                                )}
+                                {user.is_suspended && (
+                                  <Badge variant="destructive" className="text-xs flex items-center gap-1">
+                                    <Ban className="w-3 h-3" />
+                                    Suspended
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                            <Mail className="w-4 h-4" />
-                            <span className="truncate">{user.email}</span>
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            Joined: {formatDate(user.created_at)}
-                          </p>
-                          
-                          {user.is_suspended && user.suspension_reason && (
-                            <div className="mt-2 p-2 bg-red-100 rounded text-xs">
-                              <p className="font-medium text-red-800">Suspension Reason:</p>
-                              <p className="text-red-700">{user.suspension_reason}</p>
-                              {user.suspended_at && (
-                                <p className="text-red-600 mt-1">
-                                  Suspended: {formatDate(user.suspended_at)}
-                                </p>
-                              )}
+                            <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                              <Mail className="w-4 h-4" />
+                              <span className="truncate">{user.email}</span>
                             </div>
-                          )}
+                            <p className="text-xs text-gray-500">
+                              Joined: {formatDate(user.created_at)}
+                            </p>
+                            
+                            {user.is_suspended && user.suspension_reason && (
+                              <div className="mt-2 p-2 bg-red-100 rounded text-xs">
+                                <p className="font-medium text-red-800">Suspension Reason:</p>
+                                <p className="text-red-700">{user.suspension_reason}</p>
+                                {user.suspended_at && (
+                                  <p className="text-red-600 mt-1">
+                                    Suspended: {formatDate(user.suspended_at)}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         
                         {!user.is_admin && (

@@ -420,6 +420,7 @@ const MessageInput = ({
             onChange={handleMessageChange}
             onKeyDown={handleKeyPress}
             onPaste={handlePaste}
+            onBlur={() => onTypingChange?.(false)}
             placeholder={
               editingMessage 
                 ? "Edit your message... (Press Esc to cancel)" 

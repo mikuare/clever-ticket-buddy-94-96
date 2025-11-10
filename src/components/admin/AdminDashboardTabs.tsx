@@ -24,7 +24,14 @@ interface AdminDashboardTabsProps {
   loading: boolean;
   hasMore: boolean;
   totalCount: number;
-  onLoadMore: () => void;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+  onGoToPage: (page: number) => void;
+  onFirstPage: () => void;
+  onPreviousPage: () => void;
+  onNextPage: () => void;
+  onLastPage: () => void;
   departmentNotifications: any[];
   userNotifications: any[];
   ticketMessageCounts: Map<string, number>;
@@ -39,7 +46,6 @@ interface AdminDashboardTabsProps {
   onCloseTicketChat: () => void;
   onTicketsUpdate: () => void;
   onEscalateTicket: (ticket: Ticket) => void;
-  onLoadAllTickets: () => void;
   showAllTickets: boolean;
   onToggleShowAll: (showAll: boolean) => void;
   clearNotificationForTicket: (ticketId: string) => void;
@@ -58,7 +64,14 @@ const AdminDashboardTabs = ({
   loading,
   hasMore,
   totalCount,
-  onLoadMore,
+  currentPage,
+  totalPages,
+  pageSize,
+  onGoToPage,
+  onFirstPage,
+  onPreviousPage,
+  onNextPage,
+  onLastPage,
   departmentNotifications,
   userNotifications,
   ticketMessageCounts,
@@ -73,7 +86,6 @@ const AdminDashboardTabs = ({
   onCloseTicketChat,
   onTicketsUpdate,
   onEscalateTicket,
-  onLoadAllTickets,
   showAllTickets,
   onToggleShowAll,
   clearNotificationForTicket,
@@ -135,8 +147,14 @@ const AdminDashboardTabs = ({
                 selectedDepartment={selectedDepartment}
                 totalCount={totalCount}
                 hasMore={hasMore}
-                onLoadMore={onLoadMore}
-                onLoadAll={onLoadAllTickets}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              onGoToPage={onGoToPage}
+              onFirstPage={onFirstPage}
+              onPreviousPage={onPreviousPage}
+              onNextPage={onNextPage}
+              onLastPage={onLastPage}
                 showAllTickets={showAllTickets}
                 onToggleShowAll={onToggleShowAll}
                 loading={loading}

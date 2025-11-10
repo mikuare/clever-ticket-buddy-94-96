@@ -8,7 +8,6 @@ import { getAttachmentsArray } from '@/utils/attachmentUtils';
 import AttachmentDisplay from '@/components/shared/AttachmentDisplay';
 import TicketProgressionModal from '@/components/TicketProgressionModal';
 import EditTicketDetailsDialog from './EditTicketDetailsDialog';
-import TicketChat from '@/components/admin/TicketChat';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import type { Ticket } from '@/types/admin';
 
@@ -25,11 +24,10 @@ const TicketDetailsModal = ({
   isOpen, 
   onClose, 
   onOpenChat,
-  onTicketUpdated 
+  onTicketUpdated
 }: TicketDetailsModalProps) => {
   const [showProgression, setShowProgression] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showChatModal, setShowChatModal] = useState(false);
   const { isAdmin, user } = useAdminAuth();
 
   if (!ticket) return null;
@@ -76,11 +74,8 @@ const TicketDetailsModal = ({
   };
 
   const handleOpenChat = () => {
-    setShowChatModal(true);
-  };
-
-  const handleCloseChatModal = () => {
-    setShowChatModal(false);
+    onClose();
+    onOpenChat(ticket);
   };
 
   return (
@@ -255,13 +250,6 @@ const TicketDetailsModal = ({
         onTicketUpdated={handleTicketUpdated}
       />
 
-      {/* Chat Modal */}
-      <TicketChat
-        ticket={ticket}
-        isOpen={showChatModal}
-        onClose={handleCloseChatModal}
-        onTicketUpdated={handleTicketUpdated}
-      />
     </>
   );
 };

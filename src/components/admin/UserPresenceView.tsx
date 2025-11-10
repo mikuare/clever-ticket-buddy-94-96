@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Users, Circle, Clock, UserCheck, UserX } from 'lucide-react';
 import { useRealTimeUserPresence } from '@/hooks/useRealTimeUserPresence';
 import type { Department } from '@/types/admin';
@@ -63,6 +64,13 @@ const UserPresenceView = ({ departments }: UserPresenceViewProps) => {
   };
 
   const filteredUsers = getFilteredUsers();
+  const getInitials = (name: string) =>
+    name
+      .split(' ')
+      .filter(Boolean)
+      .map(part => part[0]?.toUpperCase() || '')
+      .join('')
+      .slice(0, 2);
   const onlineUsers = filteredUsers.filter(user => user.is_online);
   const offlineUsers = filteredUsers.filter(user => !user.is_online);
 
@@ -183,12 +191,13 @@ const UserPresenceView = ({ departments }: UserPresenceViewProps) => {
                       >
                         <div className="flex items-center gap-3">
                           <div className="relative">
-                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-green-800">
-                                {user.full_name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <Circle className="absolute -bottom-1 -right-1 w-4 h-4 text-green-500 fill-green-500" />
+                            <Avatar className="w-12 h-12 border-2 border-green-200">
+                              <AvatarImage src={user.avatar_url ?? undefined} alt={user.full_name} />
+                              <AvatarFallback className="bg-green-100 text-green-800 font-medium">
+                                {getInitials(user.full_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white bg-green-500" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-900 truncate">
@@ -233,12 +242,13 @@ const UserPresenceView = ({ departments }: UserPresenceViewProps) => {
                       >
                         <div className="flex items-center gap-3">
                           <div className="relative">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-gray-600">
-                                {user.full_name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <Circle className="absolute -bottom-1 -right-1 w-4 h-4 text-gray-400 fill-gray-400" />
+                            <Avatar className="w-12 h-12 border-2 border-border">
+                              <AvatarImage src={user.avatar_url ?? undefined} alt={user.full_name} />
+                              <AvatarFallback className="bg-gray-200 text-gray-600 font-medium">
+                                {getInitials(user.full_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white bg-gray-400" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-900 truncate">

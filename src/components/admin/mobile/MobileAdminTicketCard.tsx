@@ -1,25 +1,32 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { MessageSquare, Clock, User, Bookmark, MoreVertical } from 'lucide-react';
+import { MessageSquare, Clock, User, Bookmark, MoreVertical, CheckCircle, UserCheck, Paperclip, UserPlus, Zap } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { Ticket } from '@/types/admin';
+import ResolutionNotesDisplay from '../ticket-management/ResolutionNotesDisplay';
+import { useTicketEscalation } from '../ticket-management/hooks/useTicketEscalation';
 
 interface MobileAdminTicketCardProps {
   ticket: Ticket;
   hasNewMessage?: boolean;
   isBookmarked?: boolean;
+  currentAdminId?: string;
+  canRefer?: boolean;
   onOpenChat: () => void;
   onAssign: () => void;
   onResolve: () => void;
+  onReferTicket?: () => void;
   onEscalate?: () => void;
+  onShowProgression?: () => void;
   onBookmark?: () => void;
 }
 
@@ -27,41 +34,60 @@ const MobileAdminTicketCard = ({
   ticket,
   hasNewMessage,
   isBookmarked,
+  currentAdminId,
+  canRefer = false,
   onOpenChat,
   onAssign,
   onResolve,
+  onReferTicket,
   onEscalate,
+  onShowProgression,
   onBookmark
 }: MobileAdminTicketCardProps) => {
+  const { isEscalated } = useTicketEscalation(ticket.id);
+  // Check ticket assignment status
+  const isAssignedToMe = ticket.assigned_admin_id === currentAdminId;
+  const isAssignedToOther = ticket.assigned_admin_id && ticket.assigned_admin_id !== currentAdminId;
+  const isUnassigned = !ticket.assigned_admin_id;
+  
+  // Check if actions are allowed
+  const canAssign = isUnassigned && ticket.status.toLowerCase() === 'open';
+  const isResolveEligible = isAssignedToMe && ticket.status.toLowerCase() === 'in progress';
+  const canResolve = isResolveEligible && !isEscalated;
+  const isResolved = ticket.status.toLowerCase() === 'resolved' || ticket.status.toLowerCase() === 'closed';
+  const shouldShowReferButton = canRefer && !isResolved && !isEscalated;
+
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    const normalized = status
+      .toLowerCase()
+      .replace(/\s+/g, '-');
+
+    switch (normalized) {
       case 'open':
-        return 'bg-red-500/10 text-red-700 border-red-500/20';
+        return 'bg-blue-500/10 text-blue-700 border border-blue-200';
       case 'in-progress':
-        return 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20';
+        return 'bg-orange-500/10 text-orange-700 border border-orange-200';
       case 'resolved':
-        return 'bg-blue-500/10 text-blue-700 border-blue-500/20';
+        return 'bg-emerald-500/10 text-emerald-700 border border-emerald-200';
       case 'closed':
-        return 'bg-green-500/10 text-green-700 border-green-500/20';
+        return 'bg-red-500/10 text-red-700 border border-red-200';
       default:
-        return 'bg-gray-500/10 text-gray-700 border-gray-500/20';
+        return 'bg-gray-500/10 text-gray-700 border border-gray-200';
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'critical':
-        return 'bg-red-600 text-white';
-      case 'high':
-        return 'bg-orange-600 text-white';
-      case 'medium':
-        return 'bg-yellow-600 text-white';
-      case 'low':
-        return 'bg-green-600 text-white';
-      default:
-        return 'bg-gray-600 text-white';
+  // Check if ticket has attachments
+  const getAttachmentsArray = (attachments: any) => {
+    if (!attachments) return [];
+    if (Array.isArray(attachments)) return attachments;
+    if (typeof attachments === 'object' && attachments.files) {
+      return Array.isArray(attachments.files) ? attachments.files : [];
     }
+    return [];
   };
+
+  const attachmentsArray = getAttachmentsArray(ticket.attachments);
+  const hasAttachments = attachmentsArray.length > 0;
 
   return (
     <Card className="p-3 hover:shadow-md transition-shadow active:scale-[0.98] relative">
@@ -79,9 +105,6 @@ const MobileAdminTicketCard = ({
             <Badge variant="outline" className="text-xs font-mono px-1.5 py-0">
               {ticket.ticket_number}
             </Badge>
-            <Badge className={cn('text-xs px-1.5 py-0', getPriorityColor(ticket.priority))}>
-              {ticket.priority}
-            </Badge>
           </div>
           <h3 className="font-semibold text-sm text-foreground line-clamp-2">
             {ticket.title}
@@ -89,10 +112,25 @@ const MobileAdminTicketCard = ({
         </div>
       </div>
 
-      {/* Description */}
-      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-        {ticket.description}
-      </p>
+      {/* Description - Render HTML properly */}
+      <div 
+        className="text-xs text-muted-foreground mb-3 prose prose-sm max-w-none line-clamp-2"
+        dangerouslySetInnerHTML={{ __html: ticket.description }}
+        style={{
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden'
+        }}
+      />
+
+      {/* Attachments Indicator */}
+      {hasAttachments && (
+        <div className="flex items-center gap-1 mb-2 text-xs text-blue-600">
+          <Paperclip className="w-3 h-3" />
+          <span>{attachmentsArray.length} attachment{attachmentsArray.length > 1 ? 's' : ''}</span>
+        </div>
+      )}
 
       {/* Meta Info */}
       <div className="flex flex-wrap gap-2 mb-3 text-xs text-muted-foreground">
@@ -110,6 +148,36 @@ const MobileAdminTicketCard = ({
           </Badge>
         )}
       </div>
+
+      {/* Assignment Status - Mobile Friendly */}
+      {ticket.assigned_admin_name && (
+        <div className={cn(
+          "flex items-center gap-1.5 mb-3 text-xs px-2 py-1.5 rounded-md",
+          isAssignedToMe 
+            ? "bg-blue-50 text-blue-700 border border-blue-200" 
+            : "bg-amber-50 text-amber-700 border border-amber-200"
+        )}>
+          <UserCheck className="w-3 h-3" />
+          <span className="font-medium">
+            {isAssignedToMe ? "Assigned to You" : `Assigned to ${ticket.assigned_admin_name}`}
+          </span>
+        </div>
+      )}
+
+      {isEscalated && (
+        <div className="mb-3">
+          <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-xs px-2 py-1">
+            Escalated to Infosoft Dev
+          </Badge>
+        </div>
+      )}
+
+      {/* Resolution Notes - Match Web Version */}
+      {ticket.resolution_notes && (
+        <div className="mb-3">
+          <ResolutionNotesDisplay resolutionNotes={ticket.resolution_notes} />
+        </div>
+      )}
 
       {/* Status & Actions */}
       <div className="flex items-center justify-between">
@@ -131,6 +199,18 @@ const MobileAdminTicketCard = ({
             )}
           </Button>
 
+          {/* Ticket Progression Button */}
+          {onShowProgression && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={onShowProgression}
+            >
+              <Clock className="w-4 h-4" />
+            </Button>
+          )}
+
           {/* More Actions */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -138,34 +218,103 @@ const MobileAdminTicketCard = ({
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-56">
+              {onShowProgression && (
+                <>
+                  <DropdownMenuItem onClick={onShowProgression}>
+                    <Clock className="w-4 h-4 mr-2" />
+                    Ticket Progression
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              {/* Always show Open Chat */}
               <DropdownMenuItem onClick={onOpenChat}>
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Open Chat
+                {hasNewMessage && (
+                  <Badge className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0">New</Badge>
+                )}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onAssign}>
-                <User className="w-4 h-4 mr-2" />
-                Assign to Me
-              </DropdownMenuItem>
-              {ticket.status !== 'resolved' && ticket.status !== 'closed' && (
-                <DropdownMenuItem onClick={onResolve}>
-                  <Clock className="w-4 h-4 mr-2" />
-                  Mark Resolved
+              
+              <DropdownMenuSeparator />
+              
+              {/* Show Assign to Me only if unassigned and Open */}
+              {canAssign && (
+                <DropdownMenuItem onClick={onAssign}>
+                  <User className="w-4 h-4 mr-2" />
+                  Assign to Me
                 </DropdownMenuItem>
               )}
-              {onEscalate && (
-                <DropdownMenuItem onClick={onEscalate}>
-                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
-                  Escalate
+              
+              {/* Show info if assigned to someone else */}
+              {isAssignedToOther && (
+                <DropdownMenuItem disabled className="opacity-60">
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Assigned to {ticket.assigned_admin_name}
                 </DropdownMenuItem>
               )}
+              
+              {/* Show Mark Resolved only if assigned to current admin and In Progress */}
+              {isResolveEligible && (
+                <DropdownMenuItem
+                  onClick={!isEscalated ? onResolve : undefined}
+                  className={cn(!isEscalated ? 'text-green-700' : 'opacity-60')}
+                  disabled={isEscalated}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark as Resolved
+                </DropdownMenuItem>
+              )}
+
+              {isEscalated && (
+                <DropdownMenuItem disabled className="opacity-60">
+                  <Zap className="w-4 h-4 mr-2" />
+                  Escalated to Infosoft Dev
+                </DropdownMenuItem>
+              )}
+              
+              {/* Show message if already resolved */}
+              {isResolved && (
+                <DropdownMenuItem disabled className="opacity-60">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Already {ticket.status}
+                </DropdownMenuItem>
+              )}
+              
+              {/* Show Refer to Other Admin option */}
+              {shouldShowReferButton && onReferTicket && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onReferTicket} className="text-orange-700">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Refer to Other Admin
+                  </DropdownMenuItem>
+                </>
+              )}
+              
+              {/* Show Escalate only if assigned to me and not resolved */}
+              {onEscalate && isAssignedToMe && !isResolved && !isEscalated && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onEscalate} className="text-purple-700">
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                    Escalate to Infosoft
+                  </DropdownMenuItem>
+                </>
+              )}
+              
+              {/* Bookmark */}
               {onBookmark && (
-                <DropdownMenuItem onClick={onBookmark}>
-                  <Bookmark className="w-4 h-4 mr-2" />
-                  {isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onBookmark}>
+                    <Bookmark className="w-4 h-4 mr-2" />
+                    {isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>

@@ -30,38 +30,25 @@ export const useTypingIndicator = ({
     console.log(`⌨️ Updating typing status for ${userName}:`, isTyping);
 
     try {
-      if (isTyping) {
-        // Upsert typing status
-        const { error } = await supabase
-          .from('typing_status')
-          .upsert({
-            ticket_id: ticketId,
-            user_id: userId,
-            user_name: userName,
-            is_admin: isAdmin,
-            is_typing: true,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'ticket_id,user_id'
-          });
-        
-        if (error) {
-          console.error('⌨️ Error upserting typing status:', error);
-        } else {
-          console.log('✅ Typing status upserted successfully');
-        }
+      const payload = {
+        ticket_id: ticketId,
+        user_id: userId,
+        user_name: userName,
+        is_admin: isAdmin,
+        is_typing: isTyping,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('typing_status')
+        .upsert(payload, { onConflict: 'ticket_id,user_id' });
+
+      if (error) {
+        console.error('⌨️ Error updating typing status:', error);
       } else {
-        // Remove typing status
-        const { error } = await supabase
-          .from('typing_status')
-          .delete()
-          .eq('ticket_id', ticketId)
-          .eq('user_id', userId);
-          
-        if (error) {
-          console.error('⌨️ Error deleting typing status:', error);
-        } else {
-          console.log('✅ Typing status deleted successfully');
+        console.log('✅ Typing status updated successfully');
+        if (!isTyping) {
+          setTypingUsers(prev => prev.filter(u => u.user_id !== userId));
         }
       }
     } catch (error) {
@@ -163,11 +150,11 @@ export const useTypingIndicator = ({
     if (!isOpen) return;
 
     const interval = setInterval(() => {
-      const thirtySecondsAgo = new Date(Date.now() - 30000).toISOString();
-      setTypingUsers(prev => 
-        prev.filter(user => new Date(user.updated_at) > new Date(thirtySecondsAgo))
+      const cutoff = new Date(Date.now() - 7000).toISOString();
+      setTypingUsers(prev =>
+        prev.filter(user => new Date(user.updated_at) > new Date(cutoff))
       );
-    }, 5000); // Check every 5 seconds
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [isOpen]);

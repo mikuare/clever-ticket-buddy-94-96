@@ -3,10 +3,11 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 export type Theme = 'maroon' | 'dimdark' | 'yellow' | 'blue' | 'green' | 'camo';
 
+export const AVAILABLE_THEMES: Theme[] = ['maroon', 'yellow', 'blue', 'green', 'dimdark', 'camo'];
+
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  nextTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -15,8 +16,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>('yellow');
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('app-theme') as Theme;
-    if (savedTheme && ['maroon', 'dimdark', 'yellow', 'blue', 'green', 'camo'].includes(savedTheme)) {
+    const savedTheme = localStorage.getItem('app-theme') as Theme | null;
+    if (savedTheme && AVAILABLE_THEMES.includes(savedTheme)) {
       setTheme(savedTheme);
     }
   }, []);
@@ -36,15 +37,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     document.body.style.background = 'transparent';
   }, [theme]);
 
-  const nextTheme = () => {
-    const themes: Theme[] = ['maroon', 'yellow', 'blue', 'green', 'dimdark', 'camo'];
-    const currentIndex = themes.indexOf(theme);
-    const nextIndex = (currentIndex + 1) % themes.length;
-    setTheme(themes[nextIndex]);
-  };
-
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, nextTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 interface MobileAdminHeaderProps {
   profileName: string;
   departmentCode?: string;
+  profileAvatarUrl?: string;
   onSignOut: () => void;
   onViewUsers?: () => void;
   onViewDepartmentUsers?: () => void;
@@ -34,6 +35,7 @@ interface MobileAdminHeaderProps {
 const MobileAdminHeader = ({
   profileName,
   departmentCode,
+  profileAvatarUrl,
   onSignOut,
   onViewUsers,
   onViewDepartmentUsers,
@@ -57,7 +59,10 @@ const MobileAdminHeader = ({
   const [adminProfile, setAdminProfile] = useState<{
     avatar_url?: string;
     full_name: string;
-  } | null>(null);
+  }>({
+    full_name: profileName,
+    avatar_url: profileAvatarUrl
+  });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Fetch department and admin info
@@ -80,6 +85,44 @@ const MobileAdminHeader = ({
 
     fetchInfo();
   }, [departmentCode]);
+
+  useEffect(() => {
+    const fetchAdminProfile = async () => {
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const userId = authData?.user?.id;
+
+        if (userId) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url')
+            .eq('id', userId)
+            .single();
+
+          if (!error && data) {
+            setAdminProfile({
+              full_name: data.full_name || profileName,
+              avatar_url: data.avatar_url || profileAvatarUrl
+            });
+            return;
+          }
+        }
+
+        setAdminProfile({
+          full_name: profileName,
+          avatar_url: profileAvatarUrl
+        });
+      } catch (error) {
+        console.error('Error fetching admin profile:', error);
+        setAdminProfile({
+          full_name: profileName,
+          avatar_url: profileAvatarUrl
+        });
+      }
+    };
+
+    fetchAdminProfile();
+  }, [profileName, profileAvatarUrl]);
 
   const handleMenuItemClick = (action?: () => void) => {
     setIsMenuOpen(false);
@@ -148,14 +191,14 @@ const MobileAdminHeader = ({
                   <div className="p-6 bg-primary/5 border-b">
                     <div className="flex items-center gap-4">
                       <Avatar className="w-16 h-16 border-2 border-primary/20">
-                        <AvatarImage src={adminProfile?.avatar_url} />
+                        <AvatarImage src={adminProfile.avatar_url} />
                         <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-                          {profileName.split(' ').map(n => n[0]).join('')}
+                          {adminProfile.full_name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <h2 className="font-semibold text-lg text-foreground truncate">
-                          {profileName}
+                          {adminProfile.full_name}
                         </h2>
                         <p className="text-sm text-muted-foreground">Administrator</p>
                         <p className="text-xs text-muted-foreground mt-1">

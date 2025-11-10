@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Clock, Eye, X, GitBranch, RotateCcw, CheckCircle, Edit3 } from 'lucide-react';
+import { MessageSquare, Clock, Eye, RotateCcw, CheckCircle, Edit3, GitBranch } from 'lucide-react';
 import type { Ticket } from '@/hooks/useUserTickets';
 import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
@@ -168,52 +168,55 @@ const MobileTicketCard = ({
         )}
 
         {/* Action buttons */}
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onViewTicket(ticket)}
-            className={`flex-1 h-8 text-xs relative ${hasNewMessages ? 'border-red-300 text-red-700' : ''}`}
+            className={`flex-1 h-9 text-xs gap-1 ${hasNewMessages ? 'border-red-300 text-red-700' : ''}`}
           >
-            <Eye className="w-3 h-3 mr-1" />
-            {hasNewMessages ? 'View & Chat' : 'View Details'}
+            <Eye className="w-3 h-3" />
+            {hasNewMessages ? 'Open Chat' : 'View Ticket'}
             {hasNewMessages && messageCount > 0 && (
               <Badge variant="destructive" className="ml-1 h-4 px-1 text-[10px]">
                 {messageCount}
               </Badge>
             )}
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowProgression(true)}
-            className="h-8 text-xs px-2"
+            className="flex-1 h-9 text-xs gap-1"
           >
             <GitBranch className="w-3 h-3" />
+            Progression
           </Button>
-          
+
           {canClose && (
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
               onClick={() => onCloseTicket(ticket.id, ticket.ticket_number)}
               disabled={isClosing}
-              className="h-8 text-xs px-2"
+              className="flex-1 h-9 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700"
             >
-              <X className="w-3 h-3" />
+              <CheckCircle className="w-3 h-3" />
+              {isClosing ? 'Closing…' : 'Close Ticket'}
             </Button>
           )}
-          
+
           {canReopen && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => onReopenTicket(ticket.id, ticket.ticket_number)}
               disabled={isReopening}
-              className="h-8 text-xs px-2 border-orange-200 text-orange-600 hover:bg-orange-50"
+              className="flex-1 h-9 text-xs gap-1 border-orange-200 text-orange-600 hover:bg-orange-50"
             >
               <RotateCcw className="w-3 h-3" />
+              {isReopening ? 'Reopening…' : 'Reopen Ticket'}
             </Button>
           )}
         </div>
