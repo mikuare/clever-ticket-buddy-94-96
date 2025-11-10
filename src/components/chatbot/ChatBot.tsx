@@ -18,7 +18,7 @@ const ChatBot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "👋 Hello! I'm your Helpdesk Assistant. I can help you with:\n\n• Creating tickets\n• Understanding ticket status\n• Department information\n• Priority levels\n• And more!\n\nWhat would you like to know?",
+      text: "👋 Hello! I'm your Helpdesk Assistant. I can help you with:\n\n• Creating tickets\n• Master Data Management (MDM)\n• Adding Stock/Non-stock Items\n• Vendor registration\n• Employee records\n• Understanding ticket status\n• Department information\n\nWhat would you like to know?",
       sender: 'bot',
       timestamp: new Date()
     }
