@@ -3,7 +3,8 @@ const CACHE_NAME = 'qmaz-helpdesk-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/images/qmaz holdings logo.jpg',
+  '/images/android-launchericon-192-192.png',
+  '/images/android-launchericon-512-512.png',
   '/manifest.json'
 ];
 
@@ -79,8 +80,8 @@ self.addEventListener('message', (event) => {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'New notification from QMAZ Helpdesk',
-    icon: '/images/qmaz holdings logo.jpg',
-    badge: '/images/qmaz holdings logo.jpg',
+    icon: '/images/android-launchericon-192-192.png',
+    badge: '/images/android-launchericon-192-192.png',
     vibrate: [200, 100, 200],
     tag: 'helpdesk-notification',
     requireInteraction: false
