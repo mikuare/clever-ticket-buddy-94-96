@@ -36,13 +36,18 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch - Network First Strategy
+// Fetch - Network First Strategy with proper offline support
 self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
         // If valid response, clone and cache it
-        if (response && response.status === 200) {
+        if (response && response.status === 200 && response.type === 'basic') {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone);
@@ -52,7 +57,13 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         // If network fails, try cache
-        return caches.match(event.request);
+        return caches.match(event.request).then((cachedResponse) => {
+          // If no cache match, return a fallback for navigation requests
+          if (!cachedResponse && event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+          return cachedResponse;
+        });
       })
   );
 });
